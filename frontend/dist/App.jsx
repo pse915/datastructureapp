@@ -53,26 +53,48 @@ function App({args={}}) {
   const [tree,setTree]=useState({root:'',left:'',right:''});
   const [note,setNote]=useState('');
   const [componentArgs,setComponentArgs]=useState(args.result ? args : (window.__streamlitArgs || {}));
-  useEffect(()=>{ const h=e=>setComponentArgs(e.detail||{}); window.addEventListener('streamlitArgs',h); return ()=>window.removeEventListener('streamlitArgs',h); },[]);
+  useEffect(()=>{
+  const h=e=>{
+    const next=e.detail||{};
+    setComponentArgs(prev=>{
+      const prevResult=JSON.stringify(prev?.result||null);
+      const nextResult=JSON.stringify(next?.result||null);
+      return prevResult===nextResult ? prev : next;
+    });
+  };
+  window.addEventListener('streamlitArgs',h);
+  return ()=>window.removeEventListener('streamlitArgs',h);
+},[]);
   const [result,setResult]=useState((componentArgs.result)||DEFAULT_RESULT);
   const [submitting,setSubmitting]=useState(false);
   const submissionIdRef=useRef(null);
   const used=useMemo(()=>Object.values(answers).filter(Boolean),[answers]);
 
-  useEffect(()=>{ if(componentArgs.result) { setResult(componentArgs.result); setSubmitting(false); submissionIdRef.current=null; } },[componentArgs.result]);
-  useEffect(()=>{Streamlit.setFrameHeight(document.body.scrollHeight+20)},[tab,result,answers,list,rows,tree,note]);
+  useEffect(()=>{ if(componentArgs.result) setResult(componentArgs.result); },[componentArgs.result]);
+  useEffect(()=>{
+  const syncHeight=()=>Streamlit.setFrameHeight(document.body.scrollHeight+20);
+  syncHeight();
+  const observer=new ResizeObserver(syncHeight);
+  observer.observe(document.body);
+  return ()=>observer.disconnect();
+},[]);
 
   const setDrop=(id,word)=>setAnswers(a=>({...a,[id]:word}));
   const clearDrop=id=>setAnswers(a=>({...a,[id]:''}));
   const pickWord=word=>{ const target=['q1','q2','q3','q4','r1','r2','r4','listRule'].find(k=>!answers[k]); if(target) setDrop(target,word); };
   const submit=()=>{
-    if(submitting) return;
+    if(submitting || submissionIdRef.current) return;
+    const makeId=()=>{
+      try { if(globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID(); } catch(e) {}
+      return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    };
+    const id=makeId();
+    submissionIdRef.current=id;
     setSubmitting(true);
-    submissionIdRef.current=submissionIdRef.current || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    Streamlit.setComponentValue({action:'submit',submissionId:submissionIdRef.current,student,answers,activities:{list,rows,tree,note},submittedAt:new Date().toISOString()});
+    Streamlit.setComponentValue({action:'submit',submissionId:id,student,answers,activities:{list,rows,tree,note},submittedAt:new Date().toISOString()});
   };
   const saveProgress=()=>Streamlit.setComponentValue({action:'progress',student,answers,activities:{list,rows,tree,note}});
-  const reset=()=>{submitLock.current=false; setAnswers({q1:'',q2:'',q3:'',q4:'',r1:'',r2:'',r4:'',listRule:''});setResult(DEFAULT_RESULT);setTab('worksheet');};
+  const reset=()=>{submissionIdRef.current=null; setSubmitting(false); setAnswers({q1:'',q2:'',q3:'',q4:'',r1:'',r2:'',r4:'',listRule:''});setResult(DEFAULT_RESULT);setTab('worksheet');};
 
   return <main className="app-shell">
     <header className="topbar"><div><div className="eyebrow">MIDDLE SCHOOL · INFORMATION</div><h1>데이터의 구조화</h1><p>Ⅱ. 데이터 · 인터랙티브 포트폴리오 활동지</p></div><div className="student-box"><input value={student.id} onChange={e=>setStudent({...student,id:e.target.value})} placeholder="학번"/><input value={student.name} onChange={e=>setStudent({...student,name:e.target.value})} placeholder="이름"/></div></header>
