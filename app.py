@@ -38,18 +38,15 @@ if 'result' not in st.session_state:
         'answers': {},
         'feedback': [],
     }
-if 'worksheet_component_version' not in st.session_state:
-    st.session_state.worksheet_component_version = 0
-if 'last_processed_submission_id' not in st.session_state:
-    st.session_state.last_processed_submission_id = None
+if 'processed_submission_ids' not in st.session_state:
+    st.session_state.processed_submission_ids = set()
 if 'sheets_context' not in st.session_state:
     st.session_state.sheets_context = None
 
 
 component = get_component()
-component_key = f"worksheet_{st.session_state.worksheet_component_version}"
 value = component(
-    key=component_key,
+    key='worksheet',
     result=st.session_state.result,
     default=None,
     height=1800,
@@ -59,7 +56,7 @@ if isinstance(value, dict):
     action = value.get('action')
 
     if action == 'submit':
-        submission_id = value.get('submissionId')
+        submission_id = str(value.get('submissionId') or '').strip()
         if not submission_id:
             stable_payload = {
                 'student': value.get('student') or {},
@@ -75,43 +72,59 @@ if isinstance(value, dict):
                 ).encode('utf-8')
             ).hexdigest()
 
-        # V1 component은 마지막 setComponentValue를 다시 반환할 수 있습니다.
-        # 같은 submissionId는 완전히 무시하며, 여기서는 절대로 rerun하지 않습니다.
-        if st.session_state.last_processed_submission_id == submission_id:
+        # 1차 방어: 현재 Streamlit 세션에서 동일 이벤트를 다시 처리하지 않습니다.
+        if submission_id in st.session_state.processed_submission_ids:
             st.stop()
 
-        # 이 실행에서 처음 보는 제출만 처리합니다.
-        st.session_state.last_processed_submission_id = submission_id
+        # 자동채점은 이벤트당 정확히 한 번만 수행합니다.
         result = grade_submission(value)
+        result['submissionId'] = submission_id
         st.session_state.result = result
 
+        if 'gcp_service_account' not in st.secrets:
+            st.warning(
+                '자동채점은 완료되었습니다. Google Sheets 저장을 하려면 '
+                'Streamlit Secrets에 [gcp_service_account]를 설정하세요.'
+            )
+            st.session_state.processed_submission_ids.add(submission_id)
+            st.stop()
+
         try:
-            if 'gcp_service_account' not in st.secrets:
-                st.warning(
-                    '자동채점은 완료되었습니다. Google Sheets 저장을 하려면 '
-                    'Streamlit Secrets에 [gcp_service_account]를 설정하세요.'
-                )
-            else:
-                if st.session_state.sheets_context is None:
-                    st.session_state.sheets_context = prepare_sheets(
-                        st.secrets['gcp_service_account'],
-                        SPREADSHEET_URL,
-                    )
-                saved_at = save_submission(
+            if st.session_state.sheets_context is None:
+                st.session_state.sheets_context = prepare_sheets(
                     st.secrets['gcp_service_account'],
                     SPREADSHEET_URL,
-                    value,
-                    result,
-                    sheets=st.session_state.sheets_context,
                 )
-                st.toast(f'Google Sheets 저장 완료 · {saved_at}')
+
+            save_result = save_submission(
+                st.secrets['gcp_service_account'],
+                SPREADSHEET_URL,
+                value,
+                result,
+                submission_id=submission_id,
+                sheets=st.session_state.sheets_context,
+            )
+
+            # Sheets 원장에서 duplicate/processing까지 확인한 뒤 세션에도 기록합니다.
+            st.session_state.processed_submission_ids.add(submission_id)
+
+            if save_result['status'] == 'saved':
+                st.toast(f"Google Sheets 저장 완료 · {save_result['saved_at']}")
+            elif save_result['status'] == 'duplicate':
+                st.info('이미 저장된 제출입니다. 중복 저장하지 않았습니다.')
+            else:
+                st.info('같은 제출이 이미 처리 중입니다. 중복 저장하지 않았습니다.')
         except Exception as exc:
             st.error(f'Google Sheets 저장에 실패했습니다: {exc}')
+            # 실패한 submissionId는 세션 processed set에 넣지 않습니다.
+            # 단, Sheets 원장이 PROCESSING이면 다음 동일 이벤트도 중복 append하지 않습니다.
+            st.stop()
 
-        # 중요: component key를 먼저 변경한 뒤 딱 한 번만 rerun합니다.
-        # 새 key는 이전 V1 component value를 보존하지 않습니다.
-        st.session_state.worksheet_component_version += 1
+        # 저장 처리가 끝난 뒤 결과를 React에 전달하려면 한 번의 rerun이 필요합니다.
+        # 단, 동일 submissionId는 위의 processed_submission_ids에서 즉시 stop되므로
+        # 이 rerun이 Google Sheets 저장을 다시 실행시키지는 않습니다.
         st.rerun()
 
     elif action == 'progress':
+        # 임시 저장은 Google Sheets 제출 저장과 완전히 분리합니다.
         st.session_state.progress = value
