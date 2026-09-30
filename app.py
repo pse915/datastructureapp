@@ -10,7 +10,7 @@ st.set_page_config(page_title='데이터의 구조화', page_icon='📋', layout
 
 ROOT = Path(__file__).parent
 BUILD_DIR = ROOT / 'frontend' / 'dist'
-SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1TM-90ev9Weibwqnq1xOhOQZCP78kNHANF_p4W2XZJMo/edit'
+SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit'
 
 if not BUILD_DIR.exists():
     st.error('React build가 없습니다. frontend에서 npm run build 후 frontend/dist를 GitHub에 포함하세요.')
