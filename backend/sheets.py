@@ -19,7 +19,7 @@ PORTFOLIO = "포트폴리오"
 
 HEADERS = {
     LEDGER: ["submissionId", "상태", "제출시각", "학번", "이름", "주차", "처리시각"],
-    STUDENT_SHEET: ["학번", "이름", "학년", "반", "번호", "활성"],
+    STUDENT_SHEET: ["학번", "이름", "학년", "반", "번호"],
     WEEK_SHEET: ["주차", "학습목표", "활동지질문", "배점", "공개여부"],
     PORTFOLIO: [
         "제출ID", "학번", "이름", "학년", "반", "주차", "학습목표",
@@ -65,6 +65,29 @@ def _ensure_header(ws, expected: list[str]):
     raise RuntimeError(f"'{ws.title}' 헤더가 예상과 다릅니다. 현재={current}, 예상={expected}")
 
 
+def _ensure_student_header(ws):
+    """학생명단은 기존 5열 구조와 확장 6열(활성) 구조를 모두 허용한다."""
+    current = _with_backoff(lambda: ws.row_values(1))
+    required = HEADERS[STUDENT_SHEET]
+    if not current:
+        _with_backoff(lambda: ws.update("A1", [required]))
+        return
+
+    # 기존 사용 중인 5열 구조: 학번/이름/학년/반/번호
+    if current[:5] == required and len(current) == 5:
+        return
+
+    # 활성 열이 추가된 6열 구조도 허용
+    extended = required + ["활성"]
+    if current == extended:
+        return
+
+    raise RuntimeError(
+        f"'{ws.title}' 헤더가 올바르지 않습니다. "
+        f"필수={required}, 허용={extended}, 현재={current}"
+    )
+
+
 def _get_or_create(book):
     worksheets = {ws.title: ws for ws in _with_backoff(book.worksheets)}
     for title, headers in HEADERS.items():
@@ -75,7 +98,10 @@ def _get_or_create(book):
             _with_backoff(lambda ws=ws, headers=headers: ws.update("A1", [headers]))
             worksheets[title] = ws
         else:
-            _ensure_header(worksheets[title], headers)
+            if title == STUDENT_SHEET:
+                _ensure_student_header(worksheets[title])
+            else:
+                _ensure_header(worksheets[title], headers)
     return worksheets
 
 
@@ -94,12 +120,63 @@ def read_records(ws) -> list[dict[str, str]]:
 
 
 def find_student(sheets, student_id: str) -> dict[str, str] | None:
+    """학생명단에서 학번을 검증한다.
+
+    - 기본적으로 A:E의 표준 5열 구조를 사용한다.
+    - F열 '활성'이 있으면 N/NO/FALSE/0 학생만 차단한다.
+    - 과거 시트에서 행 데이터가 잘못된 시작 열(C열 등)에 놓인 경우에도
+      학번을 전체 행에서 찾아 로그인할 수 있도록 안전한 호환 fallback을 제공한다.
+    """
     sid = str(student_id).strip()
     if not sid:
         return None
-    for row in read_records(sheets[STUDENT_SHEET]):
-        if str(row.get("학번", "")).strip() == sid and str(row.get("활성", "Y")).strip().upper() not in {"N", "NO", "FALSE", "0"}:
-            return row
+
+    ws = sheets[STUDENT_SHEET]
+    values = _with_backoff(lambda: ws.get_all_values())
+    if len(values) < 2:
+        return None
+    headers = values[0]
+    required = HEADERS[STUDENT_SHEET]
+
+    # 표준 구조: 헤더 순서가 A:E에 정확히 맞는 경우
+    if headers[:5] == required:
+        for raw in values[1:]:
+            row = raw + [""] * max(0, len(headers) - len(raw))
+            record = dict(zip(headers, row))
+            if str(record.get("학번", "")).strip() != sid:
+                continue
+            active = str(record.get("활성", "Y")).strip().upper()
+            if active in {"N", "NO", "FALSE", "0"}:
+                return None
+            return record
+
+    # 레거시/잘못 붙여넣어진 행 호환: 전체 행에서 학번을 찾고
+    # 바로 오른쪽 값을 이름으로 사용한다. 기존 데이터가 C열부터 들어온
+    # 경우에도 로그인 자체는 가능하게 하되, 없는 학년/번호는 빈 값으로 둔다.
+    for raw in values[1:]:
+        for idx, cell in enumerate(raw):
+            if str(cell).strip() != sid:
+                continue
+            record = {key: "" for key in required}
+            record["학번"] = sid
+            if idx + 1 < len(raw):
+                record["이름"] = str(raw[idx + 1]).strip()
+            # 확장 시트에서 활성값이 학번 오른쪽 5칸에 있을 수 있는 경우 확인
+            if "활성" in headers:
+                try:
+                    active_idx = headers.index("활성")
+                    active = str(raw[active_idx] if active_idx < len(raw) else "Y").strip().upper()
+                    if active in {"N", "NO", "FALSE", "0"}:
+                        return None
+                except ValueError:
+                    pass
+            # 헤더 기반으로 일부 값이 정상적으로 존재하면 보존
+            for key in required[1:]:
+                if key in headers:
+                    hidx = headers.index(key)
+                    if hidx < len(raw):
+                        record[key] = str(raw[hidx]).strip()
+            return record
     return None
 
 

@@ -28,7 +28,7 @@ st.set_page_config(page_title="기술·가정 포트폴리오", page_icon="📚"
 
 ROOT = Path(__file__).parent
 BUILD_DIR = ROOT / "frontend" / "dist"
-SPREADSHEET_URL = str(st.secrets.get("SPREADSHEET_URL", "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit"))
+SPREADSHEET_URL = str(st.secrets.get("SPREADSHEET_URL", "https://docs.google.com/spreadsheets/d/1TM-90ev9Weibwqnq1xOhOQZCP78kNHANF_p4W2XZJMo/edit"))
 
 
 def init_state():
@@ -91,7 +91,7 @@ def student_login():
             s = sheets()
             student = find_student(s, sid.strip())
             if not student:
-                st.error("학생명단에서 해당 학번을 찾지 못했습니다.")
+                st.error("학생명단에서 해당 학번을 찾지 못했습니다. 학번이 A열에 없어도 기존 데이터 형식은 자동으로 확인하지만, 학번 자체가 명단에 있어야 합니다.")
                 return
             st.session_state.role = "student"
             st.session_state.student = student
