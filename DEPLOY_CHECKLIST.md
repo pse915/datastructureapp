@@ -1,21 +1,16 @@
-# 배포 전 점검표
+# 배포 전 체크리스트
 
-## 검증 완료
-- [x] Python 전체 파일 `py_compile` 통과
-- [x] 자동채점 샘플 20/20, 100% 통과
-- [x] React source / Vite 구조 포함
-- [x] Streamlit custom component용 `frontend/dist` 포함
-- [x] Google Sheets 저장 코드 포함
-- [x] `.streamlit/secrets.toml`은 Git에 올리지 않도록 `.gitignore` 처리
-
-## 현재 환경에서 검증할 수 없었던 항목
-- Streamlit 패키지가 실행 환경에 설치되어 있지 않아 실제 `streamlit run app.py` 런타임 테스트는 수행하지 못했습니다.
-- npm registry 접근이 되지 않아 `npm install` 및 Vite production build를 이 환경에서 수행하지 못했습니다.
-- 따라서 `frontend/dist`는 Streamlit Cloud가 Node/npm을 요구하지 않도록 만든 CDN 기반 실행 fallback입니다.
-
-## 권장 운영 방식
-1. 로컬 PC에서 `frontend/npm install` 후 `npm run build`.
-2. 생성된 `frontend/dist`를 GitHub에 commit.
-3. Streamlit Cloud에서 `app.py`를 배포.
-4. Streamlit Secrets에 Google service account를 입력.
-5. Google Sheets를 service account email에 편집자로 공유.
+- [ ] `frontend/dist/index.html`, `App.jsx`, `styles.css`가 GitHub에 포함되어 있는가
+- [ ] `node_modules/`는 GitHub에 포함하지 않았는가
+- [ ] `.streamlit/secrets.toml`은 GitHub에 포함하지 않았는가
+- [ ] `SPREADSHEET_URL`이 올바른가
+- [ ] `[gcp_service_account]`가 올바른가
+- [ ] 서비스 계정 이메일을 Google Sheets에 편집자로 공유했는가
+- [ ] `TEACHER_PASSWORD`를 설정했는가
+- [ ] `학생명단` 헤더가 `학번, 이름, 학년, 반, 번호`인지 확인했는가
+- [ ] `활성` 열을 사용하는 경우 로그인 허용 학생은 `Y`로 되어 있는가
+- [ ] `주차설정`에 1~17주차가 있는가
+- [ ] 학생 로그인 → 포트폴리오 제출 → 수정 흐름을 확인했는가
+- [ ] 같은 제출을 다시 보내도 Google Sheets에 중복 행이 생기지 않는가
+- [ ] 교사 로그인 → 학생 선택 → 점수/피드백 저장을 확인했는가
+- [ ] CSV 다운로드를 확인했는가
