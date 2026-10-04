@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -21,19 +22,6 @@ from backend.sheets import (
     update_grade_and_feedback,
 )
 
-# 주차별 등록 / 파일 추출 (backend/week_admin.py 필요)
-try:
-    from backend.week_admin import (
-        extract_text_from_upload,
-        save_student_text_to_drive,
-        upload_bytes_to_drive,
-        upsert_week_setting,
-    )
-
-    HAS_WEEK_ADMIN = True
-except ImportError:
-    HAS_WEEK_ADMIN = False
-
 st.set_page_config(
     page_title="기술·가정 포트폴리오",
     page_icon="📚",
@@ -51,7 +39,6 @@ SPREADSHEET_URL = str(
 )
 DRIVE_FOLDER_ID = str(st.secrets.get("DRIVE_FOLDER_ID", "")).strip()
 
-# React Custom Component
 DEV_COMPONENT_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
 if DEV_COMPONENT_URL:
     portfolio_component = components.declare_component(
@@ -248,7 +235,6 @@ def build_payload() -> dict[str, Any]:
 
 
 def process_event(event: Any) -> bool:
-    """React 이벤트를 eventId 기준으로 한 번만 처리."""
     if isinstance(event, str):
         try:
             event = json.loads(event)
@@ -330,13 +316,10 @@ def process_event(event: Any) -> bool:
             )
             reload_student()
 
-            # Drive 백업 (선택)
-            if (
-                HAS_WEEK_ADMIN
-                and DRIVE_FOLDER_ID
-                and result.get("status") == "saved"
-            ):
+            if result.get("status") == "saved" and DRIVE_FOLDER_ID:
                 try:
+                    from backend.week_admin import save_student_text_to_drive
+
                     save_student_text_to_drive(
                         service_account(),
                         DRIVE_FOLDER_ID,
@@ -386,6 +369,66 @@ def process_event(event: Any) -> bool:
                 else "해당 포트폴리오 기록을 찾지 못했습니다.",
             )
 
+        elif action == "teacher_week_save":
+            if st.session_state.role != "teacher":
+                raise RuntimeError("교사 모드가 아닙니다.")
+
+            from backend.week_admin import (
+                extract_text_from_upload,
+                upload_bytes_to_drive,
+                upsert_week_setting,
+            )
+
+            week_no = int(event.get("week", 0))
+            goal = str(event.get("goal", "")).strip()
+            prompt = str(event.get("prompt", "")).strip()
+            score = int(event.get("score", 10) or 10)
+            published = str(event.get("published", "Y")).strip() or "Y"
+            file_name = str(event.get("fileName", "")).strip()
+            file_b64 = str(event.get("fileBase64", "")).strip()
+            mime = str(event.get("mimeType", "application/octet-stream")).strip()
+
+            material_url = ""
+            final_prompt = prompt
+
+            if file_b64 and file_name:
+                raw = base64.b64decode(file_b64)
+                if DRIVE_FOLDER_ID:
+                    material_url = upload_bytes_to_drive(
+                        service_account(),
+                        DRIVE_FOLDER_ID,
+                        f"week{week_no}_{file_name}",
+                        raw,
+                        mime_type=mime or "application/octet-stream",
+                    )
+
+                class _MemFile:
+                    def __init__(self, name: str, data: bytes):
+                        self.name = name
+                        self._data = data
+
+                    def read(self):
+                        return self._data
+
+                extracted = extract_text_from_upload(_MemFile(file_name, raw))
+                if not final_prompt and extracted:
+                    final_prompt = extracted[:4000]
+
+            if not goal and not final_prompt:
+                raise RuntimeError("학습목표 또는 활동지 내용이 필요합니다.")
+
+            upsert_week_setting(
+                sheets(),
+                week_no,
+                goal or f"{week_no}주차 학습",
+                final_prompt or goal,
+                score=score,
+                published=published,
+                material_url=material_url,
+            )
+            reload_teacher()
+            set_flash("success", f"{week_no}주차 포트폴리오 설정이 저장되었습니다.")
+
         elif action == "teacher_refresh":
             if st.session_state.role != "teacher":
                 raise RuntimeError("교사 모드가 아닙니다.")
@@ -410,78 +453,6 @@ def process_event(event: Any) -> bool:
     return True
 
 
-        elif action == "teacher_week_save":
-            if st.session_state.role != "teacher":
-                raise RuntimeError("교사 모드가 아닙니다.")
-            try:
-                from backend.week_admin import (
-                    extract_text_from_upload,
-                    upload_bytes_to_drive,
-                    upsert_week_setting,
-                )
-            except ImportError as exc:
-                raise RuntimeError(
-                    "backend/week_admin.py 가 필요합니다. 파일을 추가해 주세요."
-                ) from exc
-
-            week_no = int(event.get("week", 0))
-            goal = str(event.get("goal", "")).strip()
-            prompt = str(event.get("prompt", "")).strip()
-            score = int(event.get("score", 10) or 10)
-            published = str(event.get("published", "Y")).strip() or "Y"
-            file_name = str(event.get("fileName", "")).strip()
-            file_b64 = str(event.get("fileBase64", "")).strip()
-            mime = str(event.get("mimeType", "application/octet-stream")).strip()
-
-            material_url = ""
-            final_prompt = prompt
-
-            if file_b64 and file_name:
-                import base64
-                import io
-
-                raw = base64.b64decode(file_b64)
-                folder_id = str(st.secrets.get("DRIVE_FOLDER_ID", "")).strip()
-                if folder_id:
-                    material_url = upload_bytes_to_drive(
-                        service_account(),
-                        folder_id,
-                        f"week{week_no}_{file_name}",
-                        raw,
-                        mime_type=mime or "application/octet-stream",
-                    )
-
-                # 업로드 파일처럼 흉내 내어 텍스트 추출
-                class _MemFile:
-                    def __init__(self, name, data):
-                        self.name = name
-                        self._data = data
-                        self._pos = 0
-
-                    def read(self):
-                        return self._data
-
-                extracted = extract_text_from_upload(_MemFile(file_name, raw))
-                if not final_prompt and extracted:
-                    final_prompt = extracted[:4000]
-
-            if not goal and not final_prompt:
-                raise RuntimeError("학습목표 또는 활동지 내용이 필요합니다.")
-
-            upsert_week_setting(
-                sheets(),
-                week_no,
-                goal or f"{week_no}주차 학습",
-                final_prompt or goal,
-                score=score,
-                published=published,
-                material_url=material_url,
-            )
-            reload_teacher()
-            set_flash("success", f"{week_no}주차 포트폴리오 설정이 저장되었습니다.")
-
-
-# ----- React 컴포넌트는 스크립트에서 단 1회만 호출 -----
 event = portfolio_component(
     **build_payload(),
     default=None,
