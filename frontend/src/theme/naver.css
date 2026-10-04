@@ -1,0 +1,93 @@
+/* ===== 네이버 디자인 테마 (Naver Design Tokens + Components) =====
+ * - games/GameModule.jsx(App.jsx 내장 Games 번들) 전용 .nv-* 컴포넌트
+ * - 기존 TECH·HOME 셸을 네이버 톤으로 맞추는 전역 오버라이드 (하단 THEME OVERRIDES)
+ * 폰트: Pretendard(CDN, progressive enhancement) + 시스템 폴백
+ */
+:root{
+  --nv-green:#03C75A; --nv-green-dark:#02A94E; --nv-green-tint:#E8F9EF;
+  --nv-bg:#F4F6F8; --nv-surface:#FFFFFF; --nv-border:#E4E8EB;
+  --nv-text:#1E1E23; --nv-sub:#8E8E93; --nv-danger:#E53E3E; --nv-danger-tint:#FDECEC;
+  --nv-radius:12px; --nv-radius-sm:8px;
+  --nv-font:'Pretendard',-apple-system,BlinkMacSystemFont,'Noto Sans KR','Segoe UI',sans-serif;
+}
+
+/* ---------- Naver 공용 컴포넌트 (.nv-scope 권장, 전역 사용 가능) ---------- */
+.nv-page{display:grid;gap:16px;font-family:var(--nv-font);color:var(--nv-text)}
+.nv-page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.nv-page-head .eyebrow{color:var(--nv-green);font-weight:900;letter-spacing:.12em;font-size:11px}
+.nv-page-head h1{font-size:26px;letter-spacing:-.02em;margin:6px 0 0}
+.nv-page-head p{color:var(--nv-sub);font-size:13px;margin:6px 0 0}
+.nv-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nv-card{background:var(--nv-surface);border:1px solid var(--nv-border);border-radius:var(--nv-radius);padding:20px;display:grid;gap:12px}
+.nv-card h2{font-size:19px;margin:4px 0;letter-spacing:-.01em}
+.nv-card h3{font-size:16px;margin:4px 0}
+.nv-card p{color:#3A3A3E;font-size:14px;line-height:1.65;margin:0}
+.nv-hint{color:var(--nv-sub)!important;font-size:12px!important}
+.nv-badge{display:inline-block;width:fit-content;background:var(--nv-green-tint);color:#0A7A3D;border-radius:99px;padding:5px 12px;font-size:11px;font-weight:800}
+.nv-badge-gray{display:inline-block;width:fit-content;background:#F1F3F5;color:#666;border-radius:99px;padding:5px 12px;font-size:11px;font-weight:800}
+.nv-btn{border:1px solid var(--nv-border);background:#fff;border-radius:var(--nv-radius-sm);padding:10px 16px;font:inherit;font-size:13px;font-weight:700;color:var(--nv-text);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}
+.nv-btn:hover{box-shadow:0 4px 14px rgba(3,199,90,.12);transform:translateY(-1px)}
+.nv-btn-primary{background:var(--nv-green);border-color:var(--nv-green);color:#fff}
+.nv-btn-primary:hover{background:var(--nv-green-dark)}
+.nv-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.nv-input,.nv-select,.nv-textarea{border:1px solid var(--nv-border);border-radius:var(--nv-radius-sm);padding:11px 12px;font:inherit;font-size:14px;width:100%;background:#fff;color:var(--nv-text);outline:0}
+.nv-input:focus,.nv-select:focus,.nv-textarea:focus{border-color:var(--nv-green);box-shadow:0 0 0 3px rgba(3,199,90,.12)}
+.nv-textarea{min-height:90px;resize:vertical;line-height:1.6}
+.nv-card label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#555}
+.nv-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* 상단 탭: 선택 탭 하단 그린 바 */
+.nv-tabs{display:flex;gap:4px;overflow-x:auto;background:#fff;border:1px solid var(--nv-border);border-radius:var(--nv-radius);padding:6px 8px}
+.nv-tab{position:relative;border:0;background:transparent;cursor:pointer;font:inherit;padding:12px 16px 14px;color:var(--nv-sub);display:grid;gap:2px;justify-items:center;min-width:92px;border-radius:8px;white-space:nowrap}
+.nv-tab b{font-size:15px;color:inherit}
+.nv-tab small{font-size:10px}
+.nv-tab i{font-style:normal;font-size:10px;font-weight:800;color:#0A7A3D;background:var(--nv-green-tint);border-radius:99px;padding:2px 8px}
+.nv-tab:hover{background:#F6F8FA}
+.nv-tab.on{color:var(--nv-text);font-weight:800}
+.nv-tab.on::after{content:"";position:absolute;left:14px;right:14px;bottom:4px;height:3px;border-radius:99px;background:var(--nv-green)}
+/* 토글 스위치 */
+.nv-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:800;color:#555}
+.nv-switch input{display:none}
+.nv-slider{width:44px;height:24px;border-radius:99px;background:#D6DBDF;position:relative;transition:background .15s ease;flex:none}
+.nv-slider::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:left .15s ease}
+.nv-switch input:checked + .nv-slider{background:var(--nv-green)}
+.nv-switch input:checked + .nv-slider::after{left:23px}
+/* 데이터 테이블 */
+.nv-table{width:100%;border-collapse:collapse;font-size:13px}
+.nv-table th{background:#F6F8FA;color:var(--nv-sub);font-size:11px;padding:10px 8px;border-bottom:1px solid var(--nv-border);white-space:nowrap}
+.nv-table td{padding:10px 8px;border-bottom:1px solid #F0F2F4;text-align:center}
+.nv-table tr:last-child td{border-bottom:0}
+/* 퀴즈 */
+.nv-quiz-opt{display:block;width:100%;text-align:left;border:1px solid var(--nv-border);background:#fff;border-radius:10px;padding:13px 15px;margin:8px 0;font:inherit;font-size:14px;cursor:pointer;transition:border-color .12s ease,background .12s ease}
+.nv-quiz-opt:hover{border-color:var(--nv-green)}
+.nv-quiz-opt.correct{background:var(--nv-green-tint);border-color:var(--nv-green);font-weight:700}
+.nv-quiz-opt.wrong{background:var(--nv-danger-tint);border-color:var(--nv-danger)}
+.nv-opt-row{display:grid;grid-template-columns:24px 1fr 32px;gap:8px;align-items:center}
+.nv-progress{height:8px;background:#EDF0F3;border-radius:99px;overflow:hidden}
+.nv-progress i{display:block;height:100%;background:var(--nv-green);border-radius:99px;transition:width .2s ease}
+/* 메모리 카드 */
+.nv-mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.nv-mem-card{min-height:76px;border:1px solid var(--nv-border);border-radius:10px;background:#F1F3F5;font:inherit;font-size:22px;font-weight:900;cursor:pointer;color:#B0B6BC;transition:transform .1s ease}
+.nv-mem-card:hover{transform:translateY(-2px)}
+.nv-mem-card.face{background:#fff;color:var(--nv-text);font-size:14px}
+.nv-mem-card.matched{background:var(--nv-green-tint);border-color:var(--nv-green);color:#0A7A3D;font-size:14px}
+.nv-frame{width:100%;min-height:420px;border:1px solid var(--nv-border);border-radius:10px;background:#fff}
+.nv-qedit{border:1px dashed #C9D1D8;border-radius:10px;padding:14px;display:grid;gap:10px;margin:10px 0;background:#FBFCFD}
+.nv-empty{padding:28px;color:var(--nv-sub);font-size:13px;text-align:center}
+@media(max-width:720px){.nv-row{grid-template-columns:1fr}.nv-mem-grid{grid-template-columns:repeat(3,1fr)}.nv-frame{min-height:340px}.nv-page-head h1{font-size:22px}}
+
+/* ---------- THEME OVERRIDES: 기존 셸을 네이버 톤으로 ---------- */
+body,.app-frame{background:#F4F6F8}
+#root,.main-canvas,.content-wrap{font-family:var(--nv-font)}
+.topbar{background:rgba(255,255,255,.94)}
+.brand-mark{background:var(--nv-green);box-shadow:0 8px 18px rgba(3,199,90,.25)}
+.ink-button{background:var(--nv-green)}
+.ink-button:hover{filter:brightness(.94)}
+.rail-nav button.active,.mobile-nav button.active{background:var(--nv-green-tint);color:#0A7A3D}
+.progress-line i,.bar-line i{background:var(--nv-green)}
+.status-pill.done{background:var(--nv-green-tint);color:#0A7A3D}
+.input-wrap:focus-within{border-color:var(--nv-green);box-shadow:0 0 0 4px rgba(3,199,90,.1)}
+.story-item.selected .week-story-ring{border-color:var(--nv-green)}
+.story-item.selected .week-story-ring div{background:var(--nv-green)}
+.cover-number{background:var(--nv-green)}
+.auth-card-head h2,.journal-cover h1,.summary-hero h1,.teacher-welcome h1{letter-spacing:-.02em}
+a{color:#0A7A3D}

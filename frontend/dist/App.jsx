@@ -1373,8 +1373,8 @@ function WorksheetUploader({ weeks, initial, uploadResult }) {
 
 /* ===== 주차별 미니게임 (Games 번들) =====
  * frontend/src/games/GameModule.jsx 와 동일한 코드의 App.jsx 내장본.
- * dist/index.html(Babel standalone, 번들러 없음)에서도 동작하도록 import 없이
- * 이 파일 스코프의 emit / hooks(useState..)를 직접 사용한다.
+ * 네이버 디자인 테마(.nv-*) 적용. dist/index.html(Babel standalone)에서도
+ * 동작하도록 import 없이 이 파일 스코프의 emit / hooks(useState..)를 직접 사용한다.
  * 원본 수정은 games/GameModule.jsx 에서 한 뒤 이 블록에 동기화할 것.
  */
 const GAME_TYPE_LABEL = { quiz: '4지선다 퀴즈', memory: '단어 카드 맞추기', embed: '외부 게임 임베드' };
@@ -1397,8 +1397,8 @@ function QuizPlayer({ config, onFinish }) {
   const [score, setScore] = useState(0);
   const [t0] = useState(Date.now());
   const [done, setDone] = useState(false);
-  if (!qs.length) return <div className="empty-mini">등록된 문제가 없습니다. 관리자에게 문의하세요.</div>;
-  if (done) return <div className="ws-card"><span className="ws-badge">게임 완료</span><h3>{score} / {qs.length}점</h3><p>결과가 저장됐습니다. 다시 플레이하면 최고점수에 도전할 수 있어요.</p></div>;
+  if (!qs.length) return <div className="nv-empty">등록된 문제가 없습니다. 관리자에게 문의하세요.</div>;
+  if (done) return <div className="nv-card"><span className="nv-badge">게임 완료</span><h3>{score} / {qs.length}점</h3><p>결과가 저장됐습니다. 다시 플레이하면 최고점수에 도전할 수 있어요.</p></div>;
   const q = qs[idx];
   const choose = (i) => {
     if (picked !== null) return;
@@ -1412,11 +1412,12 @@ function QuizPlayer({ config, onFinish }) {
       } else { setIdx(idx + 1); setPicked(null); }
     }, 500);
   };
-  return <div className="ws-card">
-    <span className="ws-badge">Q{idx + 1} / {qs.length} · {score}점</span>
+  return <div className="nv-card">
+    <span className="nv-badge">Q{idx + 1} / {qs.length} · {score}점</span>
+    <div className="nv-progress"><i style={{ width: `${Math.round(((idx) / qs.length) * 100)}%` }} /></div>
     <h3>{q.q}</h3>
     {(q.options || []).map((o, j) => {
-      let cls = 'gm-quiz-opt';
+      let cls = 'nv-quiz-opt';
       if (picked !== null) {
         if (j === q.answer) cls += ' correct';
         else if (j === picked) cls += ' wrong';
@@ -1435,8 +1436,8 @@ function MemoryPlayer({ config, onFinish }) {
   const [lock, setLock] = useState(false);
   const [t0] = useState(Date.now());
   const [done, setDone] = useState(false);
-  if (!pairs.length) return <div className="empty-mini">등록된 카드가 없습니다. 관리자에게 문의하세요.</div>;
-  if (done) return <div className="ws-card"><span className="ws-badge">게임 완료</span><h3>{pairs.length} / {pairs.length}쌍 완성!</h3><p>{moves}번 시도 · 결과가 저장됐습니다.</p></div>;
+  if (!pairs.length) return <div className="nv-empty">등록된 카드가 없습니다. 관리자에게 문의하세요.</div>;
+  if (done) return <div className="nv-card"><span className="nv-badge">게임 완료</span><h3>{pairs.length} / {pairs.length}쌍 완성!</h3><p>{moves}번 시도 · 결과가 저장됐습니다.</p></div>;
   const flip = (i) => {
     if (lock || open.includes(i) || matched.includes(deck[i].key)) return;
     const no = [...open, i];
@@ -1457,12 +1458,13 @@ function MemoryPlayer({ config, onFinish }) {
       }
     }
   };
-  return <div className="ws-card">
-    <span className="ws-badge">CARD MATCH · {matched.length}/{pairs.length}쌍 · {moves} 시도</span>
-    <div className="gm-mem-grid">
+  return <div className="nv-card">
+    <span className="nv-badge">CARD MATCH · {matched.length}/{pairs.length}쌍 · {moves} 시도</span>
+    <div className="nv-progress"><i style={{ width: `${Math.round((matched.length / pairs.length) * 100)}%` }} /></div>
+    <div className="nv-mem-grid">
       {deck.map((c, i) => {
         const face = open.includes(i) || matched.includes(c.key);
-        return <button key={i} className={`gm-card ${face ? 'face' : ''} ${matched.includes(c.key) ? 'matched' : ''}`} onClick={() => flip(i)}>{face ? c.text : '?'}</button>;
+        return <button key={i} className={`nv-mem-card ${face ? 'face' : ''} ${matched.includes(c.key) ? 'matched' : ''}`} onClick={() => flip(i)}>{face ? c.text : '?'}</button>;
       })}
     </div>
   </div>;
@@ -1481,15 +1483,15 @@ function EmbedPlayer({ config, onFinish }) {
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
-  return <div className="ws-card">
-    <span className="ws-badge">외부 게임 · {config.title}</span>
+  return <div className="nv-card">
+    <span className="nv-badge">외부 게임 · {config.title}</span>
     {content.url
-      ? <iframe title={config.title} src={content.url} className="gm-frame" sandbox="allow-scripts allow-same-origin allow-forms" />
+      ? <iframe title={config.title} src={content.url} className="nv-frame" sandbox="allow-scripts allow-same-origin allow-forms" />
       : content.html
-        ? <iframe title={config.title} srcDoc={content.html} className="gm-frame" sandbox="allow-scripts allow-same-origin" />
-        : <div className="empty-mini">등록된 게임 URL/HTML이 없습니다.</div>}
-    <p className="ws-hint">외부 게임은 postMessage &#123;source:'external-game', score, maxScore&#125; 로 점수를 자동 전송할 수 있습니다.</p>
-    <button className="ws-btn primary" onClick={() => onFinish({ score: maxScore, maxScore, durationSec: 0, detail: { via: 'manual' } })}>게임 완료 보고하기</button>
+        ? <iframe title={config.title} srcDoc={content.html} className="nv-frame" sandbox="allow-scripts allow-same-origin" />
+        : <div className="nv-empty">등록된 게임 URL/HTML이 없습니다.</div>}
+    <p className="nv-hint">외부 게임은 postMessage &#123;source:'external-game', score, maxScore&#125; 로 점수를 자동 전송할 수 있습니다.</p>
+    <button className="nv-btn nv-btn-primary" onClick={() => onFinish({ score: maxScore, maxScore, durationSec: 0, detail: { via: 'manual' } })}>게임 완료 보고하기</button>
   </div>;
 }
 function GamePlayer({ config, onFinish }) {
@@ -1497,14 +1499,14 @@ function GamePlayer({ config, onFinish }) {
   if (config.type === 'embed') return <EmbedPlayer config={config} onFinish={onFinish} />;
   return <QuizPlayer config={config} onFinish={onFinish} />;
 }
-/* ---------- 학생용: 주차별 게임 탭 ---------- */
+/* ---------- 학생용: 주차별 게임 탭 (네이버 상단 탭 스타일) ---------- */
 function StudentGames({ games, myRecords }) {
   const list = games || [];
   const [week, setWeek] = useState(list[0] ? list[0].week : 1);
   const [playing, setPlaying] = useState(false);
   const [last, setLast] = useState(null);
   useEffect(() => { setPlaying(false); setLast(null); }, [week]);
-  if (!list.length) return <div className="empty-state large">현재 플레이 가능한 주차 게임이 없습니다.</div>;
+  if (!list.length) return <div className="nv-card"><div className="nv-empty">현재 플레이 가능한 주차 게임이 없습니다.</div></div>;
   const cfg = list.find((g) => Number(g.week) === Number(week)) || list[0];
   const rec = (myRecords || []).find((r) => Number(r.주차) === Number(cfg.week));
   const finish = (res) => {
@@ -1516,27 +1518,27 @@ function StudentGames({ games, myRecords }) {
     setLast(res);
     setPlaying(false);
   };
-  return <div className="gm-student">
-    <div className="gm-tabs">
+  return <div className="nv-page">
+    <div className="nv-tabs">
       {list.map((g) => {
         const mine = (myRecords || []).find((r) => Number(r.주차) === Number(g.week));
-        return <button key={g.week} className={`gm-tab ${Number(week) === Number(g.week) ? 'on' : ''}`} onClick={() => setWeek(Number(g.week))}>
-          <b>W{g.week}</b><small>{GAME_TYPE_LABEL[g.type]}</small>{mine && mine.최고점수 ? <i>★{mine.최고점수}</i> : null}
+        return <button key={g.week} className={`nv-tab ${Number(week) === Number(g.week) ? 'on' : ''}`} onClick={() => setWeek(Number(g.week))}>
+          <b>{g.week}주차</b><small>{GAME_TYPE_LABEL[g.type]}</small>{mine && mine.최고점수 ? <i>★ {mine.최고점수}점</i> : null}
         </button>;
       })}
     </div>
-    <div className="ws-card">
-      <span className="ws-badge">{GAME_TYPE_LABEL[cfg.type]}</span>
+    <div className="nv-card">
+      <span className="nv-badge">{GAME_TYPE_LABEL[cfg.type]}</span>
       <h2>{cfg.title}</h2>
       <p>{cfg.desc}</p>
-      <p className="ws-hint">{rec && rec.최고점수 ? `내 최고점수: ${rec.최고점수}점 · 시도 ${rec.시도횟수}회` : '아직 기록이 없어요. 플레이해보세요!'}</p>
-      {!playing && <button className="ws-btn primary" onClick={() => { setLast(null); setPlaying(true); }}>게임 시작</button>}
+      <p className="nv-hint">{rec && rec.최고점수 ? `내 최고점수: ${rec.최고점수}점 · 시도 ${rec.시도횟수}회` : '아직 기록이 없어요. 플레이해보세요!'}</p>
+      {!playing && <div><button className="nv-btn nv-btn-primary" onClick={() => { setLast(null); setPlaying(true); }}>게임 시작</button></div>}
     </div>
-    {last && <div className="ws-card"><span className="ws-badge">결과 저장됨</span><h3>{last.score} / {last.maxScore}점</h3></div>}
+    {last && <div className="nv-card"><span className="nv-badge">결과 저장됨</span><h3>{last.score} / {last.maxScore}점</h3></div>}
     {playing && <GamePlayer key={`${cfg.week}-${cfg.updatedAt}`} config={cfg} onFinish={finish} />}
   </div>;
 }
-/* ---------- 관리자용: 게임 설정 + 기록 조회 ---------- */
+/* ---------- 관리자용: 게임 설정 + 기록 조회 (파트너센터 스타일) ---------- */
 function TeacherGames({ weeks, configs, records }) {
   const all = configs && configs.length ? configs : Array.from({ length: 17 }, (_, i) => ({ week: i + 1, enabled: false, type: 'quiz', title: `${i + 1}주차 미니게임`, desc: '', content: { questions: [] } }));
   const [week, setWeek] = useState(1);
@@ -1568,67 +1570,69 @@ function TeacherGames({ weeks, configs, records }) {
       : { url: embedUrl.trim(), html: embedHtml };
   const current = { week: Number(week), enabled, type: gtype, title, desc, content };
   const weekRecs = (records || []).filter((r) => Number(r.주차) === Number(week));
-  const goal = (weeks || []).find((w) => Number(w.주차) === Number(week));
-  return <div className="ws-wrap">
-    <header className="ws-top">
-      <div><span className="eyebrow">WEEKLY GAME · ADMIN</span><h1>주차별 게임 관리</h1></div>
-      <div className="ws-top-actions">
-        <select value={week} onChange={(e) => setWeek(Number(e.target.value))}>
-          {Array.from({ length: 17 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}주차 {goal && Number(goal.주차) === i + 1 ? '' : ''}{((weeks || []).find((w) => Number(w.주차) === i + 1) || {}).학습목표 || ''}</option>)}
+  const weekGoal = ((weeks || []).find((w) => Number(w.주차) === Number(week)) || {}).학습목표 || '';
+  return <div className="nv-page">
+    <header className="nv-page-head">
+      <div><span className="eyebrow">WEEKLY GAME · ADMIN</span><h1>주차별 게임 관리</h1><p>주차별로 미니게임을 등록하고 활성화하면 학생 탭에 바로 노출됩니다.{weekGoal ? ` ${week}주차 목표: ${weekGoal}` : ''}</p></div>
+      <div className="nv-head-actions">
+        <select className="nv-select" style={{ width: 'auto' }} value={week} onChange={(e) => setWeek(Number(e.target.value))}>
+          {Array.from({ length: 17 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}주차</option>)}
         </select>
-        <label className="ws-check gm-switch"><input type="checkbox" checked={enabled} onChange={(e) => { setEnabled(e.target.checked); emit('teacher_game_toggle', { week: Number(week), enabled: e.target.checked }); }} />{enabled ? '활성화' : '비활성화'}</label>
-        <button className={preview ? 'ws-btn' : 'ws-btn primary'} onClick={() => setPreview(!preview)}>{preview ? '편집으로' : '미리보기'}</button>
-        <button className="ws-btn primary" onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
+        <label className="nv-switch"><input type="checkbox" checked={enabled} onChange={(e) => { setEnabled(e.target.checked); emit('teacher_game_toggle', { week: Number(week), enabled: e.target.checked }); }} /><span className="nv-slider" />{enabled ? '활성화' : '비활성화'}</label>
+        <button className={preview ? 'nv-btn' : 'nv-btn nv-btn-primary'} onClick={() => setPreview(!preview)}>{preview ? '편집으로' : '미리보기'}</button>
+        <button className="nv-btn nv-btn-primary" onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
       </div>
     </header>
     {!preview ? <>
-      <section className="ws-card">
-        <div className="ws-row">
+      <section className="nv-card">
+        <div className="nv-row">
           <label>게임 유형
-            <select value={gtype} onChange={(e) => setGtype(e.target.value)}>
+            <select className="nv-select" value={gtype} onChange={(e) => setGtype(e.target.value)}>
               {Object.keys(GAME_TYPE_LABEL).map((t) => <option key={t} value={t}>{GAME_TYPE_LABEL[t]}</option>)}
             </select>
           </label>
-          <label>게임 제목<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+          <label>게임 제목<input className="nv-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`예: ${week}주차 퀴즈 챌린지`} /></label>
         </div>
-        <label>설명<textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="학생에게 보여줄 게임 안내" /></label>
+        <label>설명<textarea className="nv-textarea" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="학생에게 보여줄 게임 안내" /></label>
       </section>
-      {gtype === 'quiz' && <section className="ws-card">
+      {gtype === 'quiz' && <section className="nv-card">
         <b>퀴즈 문제 ({quizQs.length})</b>
-        {quizQs.map((q, i) => <div key={i} className="gm-qedit">
-          <input value={q.q} onChange={(e) => { const c = [...quizQs]; c[i] = { ...c[i], q: e.target.value }; setQuizQs(c); }} placeholder={`문제 ${i + 1}`} />
-          {q.options.map((o, j) => <div key={j} className="ws-opt">
+        {quizQs.map((q, i) => <div key={i} className="nv-qedit">
+          <input className="nv-input" value={q.q} onChange={(e) => { const c = [...quizQs]; c[i] = { ...c[i], q: e.target.value }; setQuizQs(c); }} placeholder={`문제 ${i + 1}`} />
+          {q.options.map((o, j) => <div key={j} className="nv-opt-row">
             <input type="radio" checked={Number(q.answer) === j} onChange={() => { const c = [...quizQs]; c[i] = { ...c[i], answer: j }; setQuizQs(c); }} title="정답" />
-            <input value={o} onChange={(e) => { const c = [...quizQs]; c[i] = { ...c[i], options: c[i].options.map((x, k) => (k === j ? e.target.value : x)) }; setQuizQs(c); }} placeholder={`보기 ${'ABCD'[j]}`} />
+            <input className="nv-input" value={o} onChange={(e) => { const c = [...quizQs]; c[i] = { ...c[i], options: c[i].options.map((x, k) => (k === j ? e.target.value : x)) }; setQuizQs(c); }} placeholder={`보기 ${'ABCD'[j]}`} />
+            <span className="nv-badge-gray">{'ABCD'[j]}</span>
           </div>)}
-          <button className="ws-btn" onClick={() => setQuizQs(quizQs.filter((_, k) => k !== i))}>문제 삭제</button>
+          <div><button className="nv-btn" onClick={() => setQuizQs(quizQs.filter((_, k) => k !== i))}>문제 삭제</button></div>
         </div>)}
-        <button className="ws-btn" onClick={() => setQuizQs([...quizQs, { q: '', options: ['', '', '', ''], answer: 0 }])}>+ 문제 추가</button>
+        <div><button className="nv-btn" onClick={() => setQuizQs([...quizQs, { q: '', options: ['', '', '', ''], answer: 0 }])}>+ 문제 추가</button></div>
       </section>}
-      {gtype === 'memory' && <section className="ws-card">
+      {gtype === 'memory' && <section className="nv-card">
         <b>카드 쌍 ({pairs.length})</b>
-        {pairs.map((p, i) => <div key={i} className="ws-row">
-          <input value={p.a} onChange={(e) => { const c = [...pairs]; c[i] = { ...c[i], a: e.target.value }; setPairs(c); }} placeholder="앞면 (예: photosynthesis)" />
-          <input value={p.b} onChange={(e) => { const c = [...pairs]; c[i] = { ...c[i], b: e.target.value }; setPairs(c); }} placeholder="뒷면 (예: 광합성)" />
-          <button className="ws-btn" onClick={() => setPairs(pairs.filter((_, k) => k !== i))}>×</button>
+        {pairs.map((p, i) => <div key={i} className="nv-row" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+          <input className="nv-input" value={p.a} onChange={(e) => { const c = [...pairs]; c[i] = { ...c[i], a: e.target.value }; setPairs(c); }} placeholder="앞면 (예: photosynthesis)" />
+          <input className="nv-input" value={p.b} onChange={(e) => { const c = [...pairs]; c[i] = { ...c[i], b: e.target.value }; setPairs(c); }} placeholder="뒷면 (예: 광합성)" />
+          <button className="nv-btn" onClick={() => setPairs(pairs.filter((_, k) => k !== i))}>×</button>
         </div>)}
-        <button className="ws-btn" onClick={() => setPairs([...pairs, { a: '', b: '' }])}>+ 카드 쌍 추가</button>
+        <div><button className="nv-btn" onClick={() => setPairs([...pairs, { a: '', b: '' }])}>+ 카드 쌍 추가</button></div>
       </section>}
-      {gtype === 'embed' && <section className="ws-card">
-        <label>외부 게임 URL (iframe)<input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." /></label>
-        <label>또는 직접 HTML 코드<textarea value={embedHtml} onChange={(e) => setEmbedHtml(e.target.value)} placeholder="<html>... 점수 전송: postMessage({source:'external-game', score, maxScore})" rows={6} /></label>
+      {gtype === 'embed' && <section className="nv-card">
+        <label>외부 게임 URL (iframe)<input className="nv-input" value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." /></label>
+        <label>또는 직접 HTML 코드<textarea className="nv-textarea" style={{ minHeight: '140px', fontFamily: 'monospace' }} value={embedHtml} onChange={(e) => setEmbedHtml(e.target.value)} placeholder="<html>… 점수 전송: postMessage({source:'external-game', score, maxScore})" /></label>
       </section>}
-      <section className="ws-card">
+      <section className="nv-card">
         <b>{week}주차 기록 ({weekRecs.length}명)</b>
-        {weekRecs.length ? <table className="gm-table">
+        {weekRecs.length ? <div style={{ overflowX: 'auto' }}><table className="nv-table">
           <thead><tr><th>학번</th><th>이름</th><th>점수</th><th>최고</th><th>시도</th><th>소요(초)</th><th>완료일시</th></tr></thead>
-          <tbody>{weekRecs.map((r, i) => <tr key={i}><td>{r.학번}</td><td>{r.이름}</td><td>{r.점수}</td><td>{r.최고점수}</td><td>{r.시도횟수}</td><td>{r.소요초}</td><td>{r.완료일시}</td></tr>)}</tbody>
-        </table> : <div className="empty-mini">아직 플레이 기록이 없습니다.</div>}
+          <tbody>{weekRecs.map((r, i) => <tr key={i}><td>{r.학번}</td><td>{r.이름}</td><td><b>{r.점수}</b></td><td>{r.최고점수}</td><td>{r.시도횟수}</td><td>{r.소요초}</td><td>{r.완료일시}</td></tr>)}</tbody>
+        </table></div> : <div className="nv-empty">아직 플레이 기록이 없습니다.</div>}
       </section>
     </> : <GamePlayer config={current} onFinish={() => {}} />}
   </div>;
 }
 /* ===== Games 번들 끝 ===== */
+
 
 function TeacherApp({ args }) {
   const dashboard = args.teacher || { students: [], portfolio: [], classStats: [] };
