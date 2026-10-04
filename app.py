@@ -237,11 +237,14 @@ def build_payload() -> dict[str, Any]:
 
 
 def process_event(event: Any) -> bool:
-    """React의 이벤트를 정확히 한 번만 처리합니다.
+    """React의 이벤트를 정확히 한 번만 처리합니다."""
+    # Streamlit이 dict 대신 JSON 문자열로 넘기는 경우 대비
+    if isinstance(event, str):
+        try:
+            event = json.loads(event)
+        except Exception:
+            return False
 
-    Streamlit rerun 뒤에도 component가 마지막 값을 다시 전달할 수 있으므로
-    eventId를 세션에 기록하여 동일 이벤트의 재처리를 차단합니다.
-    """
     if not isinstance(event, dict):
         return False
 
@@ -360,7 +363,8 @@ def process_event(event: Any) -> bool:
 
 
 # Component가 이전 값을 다시 전달하더라도 eventId가 같으면 한 번만 처리됩니다.
-event = portfolio_component(**build_payload(), key="technical_home_portfolio")
+payload = build_payload()
+event = portfolio_component(**payload, default=None, key="technical_home_portfolio")
 if process_event(event):
     st.rerun()
 
