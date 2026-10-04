@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -13,14 +12,27 @@ import streamlit.components.v1 as components
 
 from backend.sheets import (
     STUDENT_SHEET,
+    find_student,
     get_all_portfolio,
     get_student_portfolio,
     get_week_settings,
-    find_student,
     prepare_sheets,
     save_portfolio_submission,
     update_grade_and_feedback,
 )
+
+# 주차별 등록 / 파일 추출 (backend/week_admin.py 필요)
+try:
+    from backend.week_admin import (
+        extract_text_from_upload,
+        save_student_text_to_drive,
+        upload_bytes_to_drive,
+        upsert_week_setting,
+    )
+
+    HAS_WEEK_ADMIN = True
+except ImportError:
+    HAS_WEEK_ADMIN = False
 
 st.set_page_config(
     page_title="기술·가정 포트폴리오",
@@ -37,8 +49,9 @@ SPREADSHEET_URL = str(
         "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit",
     )
 )
+DRIVE_FOLDER_ID = str(st.secrets.get("DRIVE_FOLDER_ID", "")).strip()
 
-# React Custom Component (배포: frontend/dist, 로컬: DEV URL 가능)
+# React Custom Component
 DEV_COMPONENT_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
 if DEV_COMPONENT_URL:
     portfolio_component = components.declare_component(
@@ -235,7 +248,7 @@ def build_payload() -> dict[str, Any]:
 
 
 def process_event(event: Any) -> bool:
-    """React 이벤트를 eventId 기준으로 한 번만 처리합니다."""
+    """React 이벤트를 eventId 기준으로 한 번만 처리."""
     if isinstance(event, str):
         try:
             event = json.loads(event)
@@ -316,6 +329,24 @@ def process_event(event: Any) -> bool:
                 sheets=sheets(),
             )
             reload_student()
+
+            # Drive 백업 (선택)
+            if (
+                HAS_WEEK_ADMIN
+                and DRIVE_FOLDER_ID
+                and result.get("status") == "saved"
+            ):
+                try:
+                    save_student_text_to_drive(
+                        service_account(),
+                        DRIVE_FOLDER_ID,
+                        st.session_state.student,
+                        week_no,
+                        content,
+                    )
+                except Exception:
+                    pass
+
             if result["status"] == "saved":
                 set_flash("success", f"{week_no}주차 포트폴리오가 저장되었습니다.")
             elif result["status"] == "duplicate":
@@ -379,7 +410,81 @@ def process_event(event: Any) -> bool:
     return True
 
 
-# 컴포넌트는 스크립트에서 단 한 번만 호출 (DuplicateElementKey 방지)
+def render_teacher_week_admin() -> None:
+    """교사: 주차별 포트폴리오(활동지) 등록 + PDF/Word 업로드."""
+    if st.session_state.role != "teacher":
+        return
+
+    with st.expander("📋 주차별 포트폴리오 등록 (관리자)", expanded=False):
+        if not HAS_WEEK_ADMIN:
+            st.warning(
+                "`backend/week_admin.py`가 없습니다. "
+                "주차 등록·파일 추출 기능을 쓰려면 해당 파일을 추가하세요."
+            )
+            return
+
+        st.caption(
+            "PDF / Word / TXT를 올리면 텍스트를 추출해 Google Sheets 「주차설정」에 반영합니다. "
+            "원본 파일은 Drive 폴더(Secrets: DRIVE_FOLDER_ID)에 보관할 수 있습니다."
+        )
+
+        week_no = st.number_input("주차", min_value=1, max_value=17, value=1, step=1)
+        goal = st.text_input("학습목표", placeholder="예) 스마트홈과 주거 환경 이해하기")
+        prompt = st.text_area("활동지 질문 / 안내 (직접 입력)", height=120)
+        score = st.number_input("배점", min_value=0, max_value=100, value=10, step=1)
+        published = st.selectbox("공개여부", ["Y", "N"], index=0)
+        uploaded = st.file_uploader(
+            "활동지 파일 (PDF / Word / TXT)",
+            type=["pdf", "docx", "txt"],
+        )
+
+        if st.button("주차 설정 저장", type="primary", key="btn_save_week"):
+            try:
+                material_url = ""
+                final_prompt = (prompt or "").strip()
+
+                if uploaded is not None:
+                    raw = uploaded.getvalue()
+                    mime = uploaded.type or "application/octet-stream"
+                    if DRIVE_FOLDER_ID:
+                        material_url = upload_bytes_to_drive(
+                            service_account(),
+                            DRIVE_FOLDER_ID,
+                            f"week{int(week_no)}_{uploaded.name}",
+                            raw,
+                            mime_type=mime,
+                        )
+                    extracted = extract_text_from_upload(uploaded)
+                    if not final_prompt and extracted:
+                        final_prompt = extracted[:4000]
+
+                if not (goal or "").strip() and not final_prompt:
+                    st.error("학습목표 또는 활동지 내용(파일/직접 입력)이 필요합니다.")
+                else:
+                    upsert_week_setting(
+                        sheets(),
+                        int(week_no),
+                        (goal or "").strip() or f"{int(week_no)}주차 학습",
+                        final_prompt or (goal or "").strip(),
+                        score=int(score),
+                        published=published,
+                        material_url=material_url,
+                    )
+                    reload_teacher()
+                    st.success(
+                        f"{int(week_no)}주차 설정이 Google Sheets에 저장되었습니다."
+                    )
+                    if material_url:
+                        st.markdown(f"자료 링크: {material_url}")
+                    st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+
+
+# ----- 교사 관리 패널 (React 위/아래 Streamlit UI) -----
+render_teacher_week_admin()
+
+# ----- React 컴포넌트는 스크립트에서 단 1회만 호출 -----
 event = portfolio_component(
     **build_payload(),
     default=None,
