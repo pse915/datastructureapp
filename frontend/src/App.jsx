@@ -1,23 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Streamlit } from 'streamlit-component-lib';
 import './styles.css';
 
 const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null };
-const Streamlit = {
-  setFrameHeight(height) {
-    window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height }, '*');
-  },
-  setComponentValue(value) {
-    window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setComponentValue', value, dataType: 'json' }, '*');
-  },
-};
-
-// Streamlit Custom Component bootstrap. This must happen before the parent
-// sends the first render payload; otherwise the React view can remain stuck
-// on the initial login screen.
-if (window.parent !== window) {
-  window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1 }, '*');
-}
-
 function makeEventId(prefix = 'event') {
   try {
     if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -26,25 +11,6 @@ function makeEventId(prefix = 'event') {
 }
 function emit(action, payload = {}) {
   Streamlit.setComponentValue({ action, eventId: makeEventId(action), ...payload });
-}
-function useStreamlitArgs(initialArgs) {
-  const [args, setArgs] = useState(initialArgs || DEFAULT_ARGS);
-  useEffect(() => {
-    const handler = (event) => setArgs(event.detail || DEFAULT_ARGS);
-    const renderHandler = (event) => {
-      if (event.data?.type !== 'streamlit:render') return;
-      const next = event.data.args || DEFAULT_ARGS;
-      window.__streamlitArgs = next;
-      window.dispatchEvent(new CustomEvent('technicalHomeArgs', { detail: next }));
-    };
-    window.addEventListener('technicalHomeArgs', handler);
-    window.addEventListener('message', renderHandler);
-    return () => {
-      window.removeEventListener('technicalHomeArgs', handler);
-      window.removeEventListener('message', renderHandler);
-    };
-  }, []);
-  return args;
 }
 function Icon({ name, size = 21, stroke = 1.9 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
@@ -153,11 +119,12 @@ function SummaryPage({ portfolio }) {
 function StudentApp({ args }) {
   const student=args.student||{}; const weeks=args.weeks||[]; const portfolio=args.portfolio||[];
   const [active,setActive]=useState('home'); const [selectedWeek,setSelectedWeek]=useState(Number(weeks[0]?.주차||1)); const [content,setContent]=useState(''); const [submitting,setSubmitting]=useState(false);
+  const pendingSubmissionId=useRef(null);
   const record=portfolio.find(r=>Number(r.주차)===Number(selectedWeek));
-  useEffect(()=>{setContent(record?.제출내용||'');},[selectedWeek,record?.제출내용]);
-  useEffect(()=>{setSubmitting(false);},[args.result?.submissionId,args.flash]);
+  useEffect(()=>{setContent(record?.제출내용||'');pendingSubmissionId.current=null;setSubmitting(false);},[selectedWeek,record?.제출내용]);
+  useEffect(()=>{if(args.result?.submissionId){pendingSubmissionId.current=null;setSubmitting(false);}else if(args.flash){setSubmitting(false);}},[args.result?.submissionId,args.flash]);
   const goPortfolio=(week)=>{if(week)setSelectedWeek(Number(week));setActive('portfolio');};
-  const submit=()=>{setSubmitting(true);emit('student_submit',{week:Number(selectedWeek),content,submissionId:makeEventId('submission')});};
+  const submit=()=>{if(submitting)return;setSubmitting(true);if(!pendingSubmissionId.current)pendingSubmissionId.current=makeEventId('submission');emit('student_submit',{week:Number(selectedWeek),content,submissionId:pendingSubmissionId.current});};
   return <div className="app-frame"><SideRail student={student} active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>LEARNING PORTFOLIO</span><b>{active==='home'?'오늘의 기록':active==='portfolio'?`${selectedWeek}주차 포트폴리오`:'나의 아카이브'}</b></div><div className="topbar-actions"><button className="top-avatar" onClick={()=>setActive('summary')}><Avatar name={student.이름}/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='home'&&<StudentHome student={student} portfolio={portfolio} weeks={weeks} onPortfolio={goPortfolio}/>} {active==='portfolio'&&<PortfolioPage weeks={weeks} portfolio={portfolio} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} content={content} setContent={setContent} submitting={submitting} onSubmit={submit}/>} {active==='summary'&&<SummaryPage portfolio={portfolio}/>}</div></main><MobileNav active={active} onChange={setActive}/></div>;
 }
 function TeacherDashboard({ dashboard, onStudent }) {
@@ -184,8 +151,8 @@ function TeacherApp({ args }) {
   const goStudent=(sid)=>{setStudentJump(String(sid));setActive('students');};
   return <div className="app-frame"><SideRail student={{이름:'관리자'}} teacher active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>TEACHER SPACE</span><b>{active==='dashboard'?'종합 현황':active==='students'?'학생 평가':'CSV 내보내기'}</b></div><div className="topbar-actions"><button className="refresh-button" onClick={()=>emit('teacher_refresh')}><Icon name="refresh" size={17}/><span>새로고침</span></button><button className="top-avatar" onClick={()=>emit('logout')}><Avatar name="T" accent="cool"/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='dashboard'&&<TeacherDashboard dashboard={dashboard} onStudent={goStudent}/>} {active==='students'&&<TeacherStudents dashboard={dashboard} initialStudent={studentJump}/>}  {active==='csv'&&<CsvDownload portfolio={dashboard.portfolio||[]} students={dashboard.students||[]}/>}</div></main><MobileNav active={active} onChange={setActive} teacher/></div>;
 }
-function App({ args=DEFAULT_ARGS }) {
-  const streamlitArgs=useStreamlitArgs(args);
+function App({ args = DEFAULT_ARGS }) {
+  const streamlitArgs = args || DEFAULT_ARGS;
   useEffect(()=>{
     let frame = 0;
     const resize = () => {
@@ -207,7 +174,5 @@ function App({ args=DEFAULT_ARGS }) {
   if(streamlitArgs.role==='teacher') return <TeacherApp args={streamlitArgs}/>;
   return <Login flash={streamlitArgs.flash}/>;
 }
-window.addEventListener('message',(event)=>{if(!event.data||event.data.type!=='streamlit:render')return;const next=event.data.args||DEFAULT_ARGS;window.__streamlitArgs=next;window.dispatchEvent(new CustomEvent('technicalHomeArgs',{detail:next}));});
-
 export default App;
 
