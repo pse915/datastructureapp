@@ -86,3 +86,37 @@
   .weeks-layout { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* TECH·HOME 디자인 토큰 재사용 (styles.css의 --ink/--line/--paper/--shadow 가정) */
+.ws-wrap{display:grid;gap:18px}
+.ws-top{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.ws-top h1{font-size:34px;letter-spacing:-.05em;margin:6px 0 0}
+.ws-top-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ws-top-actions select{border:1px solid var(--line,#e8e4de);border-radius:12px;padding:11px;background:#fff;font:inherit}
+.ws-card{background:var(--paper,#fff);border:1px solid var(--line,#e8e4de);border-radius:21px;padding:22px;box-shadow:var(--shadow,0 18px 55px rgba(32,25,18,.07));display:grid;gap:12px}
+.ws-card input,.ws-card textarea,.ws-card select{border:1px solid #ddd7d0;border-radius:12px;padding:11px;font:inherit;width:100%;background:#fff}
+.ws-card textarea{min-height:90px;resize:vertical;line-height:1.65}
+.ws-badge{display:inline-block;background:#f0ede8;border-radius:99px;padding:5px 10px;font-size:10px;font-weight:850;width:fit-content}
+.ws-mini{font-size:11px;color:#99928a}
+.ws-cols{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+.ws-list-head{display:grid;gap:10px}
+.ws-add{display:flex;flex-wrap:wrap;gap:6px}
+.ws-add button{border:1px solid var(--line,#e8e4de);background:#fff;border-radius:99px;padding:7px 11px;font-size:11px;font-weight:800;cursor:pointer}
+.ws-qrow{border:1px solid var(--line,#e8e4de);border-radius:15px;padding:12px;display:grid;gap:6px;cursor:pointer;background:#fff}
+.ws-qrow.on{border-color:#171717;box-shadow:0 0 0 3px rgba(0,0,0,.05)}
+.ws-rowbtns{display:flex;gap:6px;flex-wrap:wrap}
+.ws-rowbtns button,.ws-btn{border:1px solid var(--line,#e8e4de);background:#fff;border-radius:11px;padding:8px 12px;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.ws-btn.primary{background:#171717;color:#fff;border-color:#171717}
+.ws-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ws-check{display:flex;align-items:center;gap:8px}
+.ws-check input{width:auto}
+.ws-opt{display:grid;grid-template-columns:24px 1fr 32px;gap:8px;align-items:center}
+.ws-editor{display:grid;gap:12px}
+.ws-empty{color:#aaa39b;font-size:13px}
+.ws-img{max-width:100%;border-radius:15px;border:1px solid var(--line,#e8e4de)}
+.ws-chip{background:#f8f5f1;border-radius:12px;padding:10px 12px;margin:6px 0}
+.ws-blank{border:0;border-bottom:2px solid #171717;outline:0;width:110px;text-align:center;font:inherit}
+.ws-pv-opt{display:flex;gap:8px;padding:9px 0;align-items:center}
+.ws-hint{color:#8c8278;font-size:12px}
+.ws-preview{display:grid;gap:18px}
+@media(max-width:900px){.ws-cols{grid-template-columns:1fr}.ws-row{grid-template-columns:1fr}}

@@ -76,6 +76,8 @@ def init_state() -> None:
         "last_event_id": None,
         "flash": None,
         "server_result": None,
+        "worksheet": None,
+        "uploadResult": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -113,6 +115,14 @@ def reload_teacher() -> None:
     st.session_state.students = s[STUDENT_SHEET].get_all_records()
     st.session_state.all_portfolio = get_all_portfolio(s)
     st.session_state.weeks = get_week_settings(s)
+    # 학습지 초깃값 (1주차) — 시트/권한 문제 시 교사 로그인을 막지 않도록 무시
+    try:
+        from backend.worksheet_admin import load_worksheet
+
+        if not st.session_state.get("worksheet"):
+            st.session_state.worksheet = load_worksheet(s, 1)
+    except Exception:
+        pass
 
 
 def set_flash(kind: str, text: str) -> None:
@@ -226,6 +236,8 @@ def build_payload() -> dict[str, Any]:
         "teacher": teacher_dashboard() if role == "teacher" else None,
         "flash": st.session_state.flash,
         "result": st.session_state.server_result,
+        "worksheet": st.session_state.get("worksheet"),
+        "uploadResult": st.session_state.get("uploadResult"),
     }
     try:
         json.dumps(payload, ensure_ascii=False, allow_nan=False)
@@ -429,6 +441,38 @@ def process_event(event: Any) -> bool:
             reload_teacher()
             set_flash("success", f"{week_no}주차 포트폴리오 설정이 저장되었습니다.")
 
+        elif action == "teacher_worksheet_load":
+            from backend.worksheet_admin import load_worksheet
+
+            st.session_state.uploadResult = None
+            st.session_state.worksheet = load_worksheet(
+                sheets(), int(event.get("week", 1))
+            )
+            set_flash("success", f"{event.get('week', 1)}주차 학습지를 불러왔습니다.")
+
+        elif action == "teacher_worksheet_save":
+            from backend.worksheet_admin import save_worksheet
+
+            ws = event.get("worksheet", {}) or {}
+            saved_at = save_worksheet(sheets(), ws)
+            ws["updatedAt"] = saved_at
+            st.session_state.worksheet = ws
+            set_flash("success", f"{ws.get('week')}주차 학습지가 Sheets에 저장됐습니다.")
+
+        elif action == "teacher_worksheet_image":
+            from backend.worksheet_admin import upload_image_to_drive
+
+            raw = base64.b64decode(event.get("fileBase64", "") or "")
+            res = upload_image_to_drive(
+                service_account(),
+                DRIVE_FOLDER_ID,
+                f"W{event.get('week')}_{event.get('fileName', 'image.png')}",
+                raw,
+                event.get("mimeType", "image/png") or "image/png",
+            )
+            st.session_state.uploadResult = res
+            set_flash("success", "이미지가 Drive에 업로드됐습니다.")
+
         elif action == "teacher_refresh":
             if st.session_state.role != "teacher":
                 raise RuntimeError("교사 모드가 아닙니다.")
@@ -442,6 +486,8 @@ def process_event(event: Any) -> bool:
             st.session_state.student_portfolio = []
             st.session_state.all_portfolio = []
             st.session_state.students = []
+            st.session_state.worksheet = None
+            st.session_state.uploadResult = None
             set_flash("success", "로그아웃되었습니다.")
 
         else:
