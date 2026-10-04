@@ -1,5 +1,16 @@
 
 const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null };
+
+// Streamlit Component v1 handshake: this MUST be sent after this document
+// and the React/Babel runtime have loaded, otherwise Streamlit can report
+// that the component frontend failed to load.
+if (window.parent !== window) {
+  window.parent.postMessage({
+    isStreamlitMessage: true,
+    type: 'streamlit:componentReady',
+    apiVersion: 1
+  }, '*');
+}
 const Streamlit = {
   setFrameHeight(height) {
     const safeHeight = Math.max(640, Math.ceil(Number(height) || 640));
@@ -198,10 +209,10 @@ function App({ args = DEFAULT_ARGS }) {
     };
     resize();
     const root = document.getElementById('root') || document.body;
-    const obs = new ResizeObserver(resize);
-    obs.observe(root);
+    const obs = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+    if (obs) obs.observe(root);
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); obs.disconnect(); window.removeEventListener('resize', resize); };
+    return () => { cancelAnimationFrame(frame); if (obs) obs.disconnect(); window.removeEventListener('resize', resize); };
   }, [streamlitArgs.role]);
   if(streamlitArgs.role==='student') return <StudentApp args={streamlitArgs}/>;
   if(streamlitArgs.role==='teacher') return <TeacherApp args={streamlitArgs}/>;
