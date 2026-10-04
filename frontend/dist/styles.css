@@ -237,3 +237,129 @@ body,.app-frame{background:#F4F6F8}
 .cover-number{background:var(--nv-green)}
 .auth-card-head h2,.journal-cover h1,.summary-hero h1,.teacher-welcome h1{letter-spacing:-.02em}
 a{color:#0A7A3D}
+
+/* ===== 인스타그램 디자인 테마 (Instagram Design Tokens + Components) =====
+ * games/GameModule.jsx(App.jsx 내장 Games 번들) 전용 .ig-* 컴포넌트
+ * + 기존 셸을 인스타 톤으로 맞추는 전역 오버라이드 (하단 IG SHELL OVERRIDES)
+ * 라이트 기본(#FAFAFA) + prefers-color-scheme 다크 대응
+ */
+:root{
+  --ig-grad:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+  --ig-blue:#0095F6; --ig-blue-dark:#0081D6;
+  --ig-bg:#FAFAFA; --ig-surface:#FFFFFF; --ig-border:#DBDBDB;
+  --ig-text:#262626; --ig-sub:#8E8E8E;
+  --ig-green-tint:#E6F7ED; --ig-red-tint:#FDECEC;
+  --ig-radius:16px; --ig-radius-sm:12px;
+  --ig-shadow:0 8px 28px rgba(0,0,0,.08);
+  --ig-font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;
+}
+
+/* ---------- IG 공용 ---------- */
+.ig-page{display:grid;gap:16px;font-family:var(--ig-font);color:var(--ig-text)}
+.ig-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.ig-head .eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:#cc2366}
+.ig-head h1{font-size:24px;letter-spacing:-.02em;margin:6px 0 0}
+.ig-head p{color:var(--ig-sub);font-size:13px;margin:6px 0 0}
+.ig-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ig-card{background:var(--ig-surface);border:1px solid var(--ig-border);border-radius:var(--ig-radius);padding:20px;display:grid;gap:12px;box-shadow:var(--ig-shadow);transition:transform .15s ease,box-shadow .15s ease}
+.ig-card.hover:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.12)}
+.ig-card h2{font-size:18px;margin:2px 0}
+.ig-card h3{font-size:16px;margin:2px 0}
+.ig-card p{font-size:14px;line-height:1.6;margin:0;color:#3c3c3c}
+.ig-hint{color:var(--ig-sub)!important;font-size:12px!important}
+.ig-badge{display:inline-flex;align-items:center;gap:6px;width:fit-content;background:#F1F1F1;color:#555;border-radius:99px;padding:5px 12px;font-size:11px;font-weight:800}
+.ig-badge-grad{background:var(--ig-grad);color:#fff}
+.ig-avatar{width:38px;height:38px;border-radius:50%;padding:2.5px;background:var(--ig-grad);flex:none}
+.ig-avatar > div{width:100%;height:100%;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:12px;font-weight:900;color:#333;border:2px solid #fff}
+.ig-post-head{display:flex;align-items:center;gap:10px}
+.ig-post-head b{font-size:14px;display:block}
+.ig-post-head small{font-size:11px;color:var(--ig-sub)}
+.ig-actions{display:flex;gap:14px;align-items:center;padding-top:4px}
+.ig-icon-btn{border:0;background:transparent;cursor:pointer;color:var(--ig-text);padding:4px;display:grid;place-items:center;transition:transform .12s ease}
+.ig-icon-btn:hover{transform:scale(1.15)}
+.ig-icon-btn.liked{color:#ED4956}
+.ig-btn{border:1px solid var(--ig-border);background:#fff;border-radius:10px;padding:10px 16px;font:inherit;font-size:13px;font-weight:700;color:var(--ig-text);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+.ig-btn:hover{transform:translateY(-1px);box-shadow:var(--ig-shadow)}
+.ig-btn-blue{background:var(--ig-blue);border-color:var(--ig-blue);color:#fff}
+.ig-btn-blue:hover{background:var(--ig-blue-dark)}
+.ig-btn-grad{background:var(--ig-grad);border:0;color:#fff}
+.ig-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.ig-input,.ig-select,.ig-textarea{border:1px solid var(--ig-border);border-radius:10px;padding:11px 12px;font:inherit;font-size:14px;width:100%;background:#fff;color:var(--ig-text);outline:0}
+.ig-input:focus,.ig-select:focus,.ig-textarea:focus{border-color:#cc2366;box-shadow:0 0 0 3px rgba(204,35,102,.1)}
+.ig-textarea{min-height:90px;resize:vertical;line-height:1.6}
+.ig-card label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#555}
+.ig-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* 스토리 링 주차 선택 */
+.ig-stories{display:flex;gap:14px;overflow-x:auto;background:var(--ig-surface);border:1px solid var(--ig-border);border-radius:var(--ig-radius);padding:14px 16px;box-shadow:var(--ig-shadow)}
+.ig-story{border:0;background:transparent;cursor:pointer;font:inherit;display:grid;gap:6px;justify-items:center;min-width:64px;color:var(--ig-sub)}
+.ig-story .ring{width:58px;height:58px;border-radius:50%;padding:3px;background:#DDD}
+.ig-story .ring > div{width:100%;height:100%;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:13px;font-weight:900;color:#555;border:2px solid #fff}
+.ig-story small{font-size:10px;font-weight:700}
+.ig-story i{font-style:normal;font-size:10px;font-weight:800;color:#0A7A3D}
+.ig-story.live .ring{background:var(--ig-grad)}
+.ig-story.live .ring > div{color:#222}
+.ig-story.on small{color:var(--ig-text)}
+.ig-story.on .ring{box-shadow:0 0 0 2px #fff,0 0 0 4px #262626}
+.ig-story.live.on .ring{box-shadow:0 0 0 2px #fff,0 0 0 4px #cc2366}
+/* 토글 */
+.ig-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:800;color:#555}
+.ig-switch input{display:none}
+.ig-track{width:46px;height:26px;border-radius:99px;background:#D8D8D8;position:relative;transition:background .15s ease;flex:none}
+.ig-track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left .15s ease}
+.ig-switch input:checked + .ig-track{background:var(--ig-grad)}
+.ig-switch input:checked + .ig-track::after{left:23px}
+/* 테이블 */
+.ig-table{width:100%;border-collapse:collapse;font-size:13px}
+.ig-table th{font-size:11px;color:var(--ig-sub);padding:10px 8px;border-bottom:1px solid var(--ig-border);white-space:nowrap}
+.ig-table td{padding:10px 8px;border-bottom:1px solid #F0F0F0;text-align:center}
+/* 퀴즈 */
+.ig-quiz-opt{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:1px solid var(--ig-border);background:#fff;border-radius:12px;padding:12px 14px;margin:8px 0;font:inherit;font-size:14px;cursor:pointer;transition:transform .1s ease,border-color .12s ease}
+.ig-quiz-opt:hover{transform:translateY(-1px);border-color:#cc2366}
+.ig-quiz-opt .letter{width:28px;height:28px;border-radius:50%;background:#F1F1F1;display:grid;place-items:center;font-size:12px;font-weight:900;flex:none}
+.ig-quiz-opt.correct{background:var(--ig-green-tint);border-color:#2BA84A}
+.ig-quiz-opt.wrong{background:var(--ig-red-tint);border-color:#ED4956}
+.ig-progress{height:8px;background:#EFEFEF;border-radius:99px;overflow:hidden}
+.ig-progress i{display:block;height:100%;background:var(--ig-grad);border-radius:99px;transition:width .25s ease}
+/* 메모리 */
+.ig-mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.ig-mem-card{min-height:78px;border:1px solid var(--ig-border);border-radius:12px;background:#F5F5F5;font:inherit;font-size:22px;font-weight:900;cursor:pointer;color:#C7C7C7;transition:transform .12s ease}
+.ig-mem-card:hover{transform:translateY(-2px)}
+.ig-mem-card.face{background:#fff;color:var(--ig-text);font-size:14px}
+.ig-mem-card.matched{background:#FFF3F6;border:2px solid transparent;background-clip:padding-box;box-shadow:0 0 0 2px #cc2366;color:#8a1c4b;font-size:14px}
+.ig-frame{width:100%;min-height:420px;border:1px solid var(--ig-border);border-radius:12px;background:#fff}
+.ig-qedit{border:1px dashed #C7C7C7;border-radius:12px;padding:14px;display:grid;gap:10px;margin:10px 0;background:#FCFCFC}
+.ig-opt-row{display:grid;grid-template-columns:24px 1fr 32px;gap:8px;align-items:center}
+.ig-empty{padding:28px;color:var(--ig-sub);font-size:13px;text-align:center}
+/* 좋아요 팝 애니메이션 */
+@keyframes igPop{0%{transform:scale(0);opacity:0}35%{transform:scale(1.25);opacity:1}60%{transform:scale(.95)}100%{transform:scale(1);opacity:1}}
+.ig-like-pop{width:86px;height:86px;margin:6px auto;border-radius:50%;background:var(--ig-grad);display:grid;place-items:center;color:#fff;animation:igPop .5s ease}
+@media(max-width:720px){.ig-row{grid-template-columns:1fr}.ig-mem-grid{grid-template-columns:repeat(3,1fr)}.ig-frame{min-height:340px}.ig-head h1{font-size:20px}}
+
+/* ---------- IG SHELL OVERRIDES: 기존 셸을 인스타 톤으로 ---------- */
+body,.app-frame{background:#FAFAFA}
+#root,.main-canvas,.content-wrap{font-family:var(--ig-font)}
+.topbar{background:rgba(255,255,255,.94)}
+.brand-mark{background:var(--ig-grad);box-shadow:0 8px 18px rgba(204,35,102,.25)}
+.ink-button{background:var(--ig-grad)}
+.rail-nav button.active,.mobile-nav button.active{background:#FDEFF4;color:#a1144f}
+.progress-line i,.bar-line i{background:var(--ig-grad)}
+.status-pill.done{background:var(--ig-green-tint);color:#1c7a3d}
+.input-wrap:focus-within{border-color:#cc2366;box-shadow:0 0 0 4px rgba(204,35,102,.08)}
+.story-item.selected .week-story-ring{border-color:#cc2366}
+.story-item.selected .week-story-ring div{background:var(--ig-grad)}
+.cover-number{background:var(--ig-grad)}
+a{color:#a1144f}
+
+/* ---------- 다크 모드 (OS 설정 연동, 라이트 우선) ---------- */
+@media (prefers-color-scheme: dark){
+  body,.app-frame{background:#121212}
+  .topbar,.side-rail,.mobile-nav{background:rgba(24,24,24,.96)}
+  .ig-card,.ig-stories,.nv-card,.ws-card,.feed-card,.journal-card,.admin-card{background:#1E1E1E;border-color:#262626;color:#F5F5F5}
+  .ig-card p{color:#D6D6D6}
+  .ig-btn,.ig-input,.ig-select,.ig-textarea,.ig-quiz-opt,.ig-mem-card.face{background:#262626;border-color:#363636;color:#F5F5F5}
+  .ig-tab{color:#A8A8A8}
+  .ig-tab.on{color:#F5F5F5}
+  .ig-table th{background:#242424}
+  .ig-table td{border-color:#2A2A2A}
+  .ink-button{background:var(--ig-grad)}
+}
