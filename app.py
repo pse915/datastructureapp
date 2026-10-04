@@ -38,9 +38,7 @@ SPREADSHEET_URL = str(
     )
 )
 
-# React가 화면 전체를 담당하는 Streamlit Custom Component.
-# 로컬 개발에서는 STREAMLIT_COMPONENT_DEV_URL을 지정하면 Vite 서버를 사용하고,
-# 배포 환경에서는 검증된 frontend/dist 정적 빌드를 직접 서빙합니다.
+# React Custom Component (배포: frontend/dist, 로컬: DEV URL 가능)
 DEV_COMPONENT_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
 if DEV_COMPONENT_URL:
     portfolio_component = components.declare_component(
@@ -52,8 +50,14 @@ else:
     COMPONENT_APP = BUILD_DIR / "App.jsx"
     COMPONENT_STYLES = BUILD_DIR / "styles.css"
     if not all(p.exists() for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES)):
-        missing = [str(p.relative_to(ROOT)) for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES) if not p.exists()]
-        raise RuntimeError(f"React Custom Component 배포 파일이 없습니다: {', '.join(missing)}")
+        missing = [
+            str(p.relative_to(ROOT))
+            for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES)
+            if not p.exists()
+        ]
+        raise RuntimeError(
+            f"React Custom Component 배포 파일이 없습니다: {', '.join(missing)}"
+        )
     portfolio_component = components.declare_component(
         "technical_home_portfolio",
         path=str(BUILD_DIR),
@@ -94,8 +98,6 @@ def sheets():
 
 
 def reload_student(student: dict[str, Any] | None = None) -> None:
-    # 로그인 직후에는 이미 find_student()로 검증한 객체를 재사용해
-    # 학생명단을 같은 rerun에서 두 번 읽지 않습니다.
     if student is None:
         student = find_student(sheets(), st.session_state.student["학번"])
     if not student:
@@ -117,13 +119,7 @@ def set_flash(kind: str, text: str) -> None:
     st.session_state.flash = {"type": kind, "text": text}
 
 
-def clear_flash_after_render() -> None:
-    # React에 한 번 보여준 메시지는 다음 이벤트에서 새 메시지로 교체합니다.
-    st.session_state.flash = None
-
-
 def make_server_submission_id(student_id: str, week: int, client_id: str) -> str:
-    """클라이언트 ID를 그대로 신뢰하지 않고 서버에서도 안정적인 저장 키를 만든다."""
     raw = f"{student_id}|{week}|{client_id}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
@@ -198,7 +194,9 @@ def teacher_dashboard() -> dict[str, Any]:
                 "학년": str(r["학년"]),
                 "반": str(r["반"]),
                 "제출건수": int(r["제출건수"]),
-                "평균점수": round(float(r["평균점수"]) if pd.notna(r["평균점수"]) else 0, 1),
+                "평균점수": round(
+                    float(r["평균점수"]) if pd.notna(r["평균점수"]) else 0, 1
+                ),
             }
             for _, r in grouped.iterrows()
         ]
@@ -209,7 +207,9 @@ def teacher_dashboard() -> dict[str, Any]:
         "students": students,
         "totalStudents": total_students,
         "submittedStudents": int(submitted_students),
-        "submissionRate": round((submitted_students / total_students * 100) if total_students else 0, 1),
+        "submissionRate": round(
+            (submitted_students / total_students * 100) if total_students else 0, 1
+        ),
         "averageScore": round(average_score, 1),
         "classStats": class_stats,
         "portfolio": portfolio,
@@ -227,8 +227,6 @@ def build_payload() -> dict[str, Any]:
         "flash": st.session_state.flash,
         "result": st.session_state.server_result,
     }
-    # declare_component args must cross Streamlit's JSON boundary cleanly.
-    # Fail here with a useful message instead of producing a silent iframe error.
     try:
         json.dumps(payload, ensure_ascii=False, allow_nan=False)
     except (TypeError, ValueError) as exc:
@@ -237,8 +235,7 @@ def build_payload() -> dict[str, Any]:
 
 
 def process_event(event: Any) -> bool:
-    """React의 이벤트를 정확히 한 번만 처리합니다."""
-    # Streamlit이 dict 대신 JSON 문자열로 넘기는 경우 대비
+    """React 이벤트를 eventId 기준으로 한 번만 처리합니다."""
     if isinstance(event, str):
         try:
             event = json.loads(event)
@@ -272,7 +269,10 @@ def process_event(event: Any) -> bool:
                     st.session_state.role = "student"
                     st.session_state.student = student
                     reload_student(student)
-                    set_flash("success", f"{student.get('이름', '학생')}님, 로그인되었습니다.")
+                    set_flash(
+                        "success",
+                        f"{student.get('이름', '학생')}님, 로그인되었습니다.",
+                    )
 
         elif action == "teacher_login":
             password = str(event.get("password", ""))
@@ -289,7 +289,10 @@ def process_event(event: Any) -> bool:
             if st.session_state.role != "student" or not st.session_state.student:
                 raise RuntimeError("학생 로그인 상태가 아닙니다.")
             week_no = int(event.get("week", 0))
-            week = next((w for w in st.session_state.weeks if int(w["주차"]) == week_no), None)
+            week = next(
+                (w for w in st.session_state.weeks if int(w["주차"]) == week_no),
+                None,
+            )
             if not week:
                 raise RuntimeError("제출할 수 없는 주차입니다.")
 
@@ -318,7 +321,10 @@ def process_event(event: Any) -> bool:
             elif result["status"] == "duplicate":
                 set_flash("info", "이미 처리된 제출입니다. 중복 저장하지 않았습니다.")
             else:
-                set_flash("info", "같은 제출이 처리 중입니다. 잠시 후 결과를 확인해 주세요.")
+                set_flash(
+                    "info",
+                    "같은 제출이 처리 중입니다. 잠시 후 결과를 확인해 주세요.",
+                )
             st.session_state.server_result = {
                 "submissionId": client_id,
                 "status": result["status"],
@@ -333,10 +339,21 @@ def process_event(event: Any) -> bool:
             score = int(event.get("score", 0))
             feedback = str(event.get("feedback", ""))
             ok = update_grade_and_feedback(
-                service_account(), SPREADSHEET_URL, sid, week_no, score, feedback, sheets=sheets()
+                service_account(),
+                SPREADSHEET_URL,
+                sid,
+                week_no,
+                score,
+                feedback,
+                sheets=sheets(),
             )
             reload_teacher()
-            set_flash("success" if ok else "error", "점수와 피드백을 저장했습니다." if ok else "해당 포트폴리오 기록을 찾지 못했습니다.")
+            set_flash(
+                "success" if ok else "error",
+                "점수와 피드백을 저장했습니다."
+                if ok
+                else "해당 포트폴리오 기록을 찾지 못했습니다.",
+            )
 
         elif action == "teacher_refresh":
             if st.session_state.role != "teacher":
@@ -362,31 +379,12 @@ def process_event(event: Any) -> bool:
     return True
 
 
-# ===== 로그인: Streamlit 네이티브 (컴포넌트 통신 불필요) =====
-# React UI (로그인 포함). 이벤트가 오면 처리 후 rerun.
-event = portfolio_component(**build_payload(), default=None, key="technical_home_portfolio")
-
-# Streamlit이 dict 대신 JSON 문자열로 넘기는 경우 대비
-if isinstance(event, str):
-    try:
-        event = json.loads(event)
-    except Exception:
-        event = None
+# 컴포넌트는 스크립트에서 단 한 번만 호출 (DuplicateElementKey 방지)
+event = portfolio_component(
+    **build_payload(),
+    default=None,
+    key="technical_home_portfolio",
+)
 
 if process_event(event):
     st.rerun()
-# ===== 로그인 후: React 포트폴리오 UI =====
-event = portfolio_component(**build_payload(), default=None, key="technical_home_portfolio")
-
-# 문자열로 오는 경우 대비
-if isinstance(event, str):
-    try:
-        event = json.loads(event)
-    except Exception:
-        event = None
-
-if process_event(event):
-    st.rerun()
-
-# 최종 화면은 React component 하나만 렌더링합니다. Streamlit의 st.title/st.tabs/
-# st.dataframe/st.text_area 등은 사용하지 않으므로 화면 UI가 Streamlit CSS에 종속되지 않습니다.
