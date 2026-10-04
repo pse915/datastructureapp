@@ -1,61 +1,47 @@
-# TECH · HOME — React 전체 UI 포트폴리오
+# Datastructuregram — 자료구조 학습 앱 (Instagram Redesign Full)
 
-기술·가정 1~17주차 학습 포트폴리오를 위한 **React UI + Streamlit 호스트/백엔드 + Google Sheets 데이터 계층** 프로젝트입니다.
+기존 `datastructureapp`의 학습/실습/게임/문제풀이 기능은 100% 유지하면서,
+전체 UI를 **인스타그램 스타일(피드·스토리·카드·하단내비)** 로 재작성한 통합본입니다.
 
 ## 구조
 
 ```text
 Browser
-  └─ React (frontend/src, frontend/dist)
-       └─ Streamlit Custom Component
-            └─ app.py
-                 └─ backend/sheets.py
-                      └─ Google Sheets
+ └─ React (frontend/src → frontend/dist, 빌드 없이 Babel로 직접 서빙)
+      └─ Streamlit Custom Component (declare_component path=frontend/dist)
+           └─ app.py (세션/인증/라우팅)
+                ├─ backend/sheets.py (학생명단/주차설정/포트폴리오/제출기록)
+                ├─ backend/game_store.py (게임설정/게임기록, 주차 1-17)
+                ├─ backend/ds_store.py ★NEW (DS진행도: 단원 8종 해결 상태)
+                ├─ backend/week_admin.py / worksheet_admin.py (자료/학습지)
+                └─ Google Sheets (+ 로컬 JSON 폴백)
 ```
 
-### 역할 분리
+## 기능 (유지 + 추가)
 
-- **React**: 로그인 화면, 학생 홈, 1~17주차 포트폴리오, 제출/수정, 나의 기록, 교사 대시보드, 학생 평가, CSV 내보내기, 모든 시각 디자인
-- **Streamlit**: 세션 상태, 이벤트 라우팅, 인증, 권한 검사, React Custom Component 호스트
-- **backend/sheets.py**: Google Sheets 인증/조회/저장 및 `submissionId` 기반 정확히 한 번 저장
-- **backend/grading.py**: 기존 채점 로직
+1. 자료구조 핵심 개념 + Python 코드 예시 — 8단원 피드 포스트 카드
+   (`frontend/src/data/dsCurriculum.js`: array/linkedlist/stack/queue/tree/graph/sort/hash)
+2. 인터랙티브 시각화/시뮬레이터 — `components/Visualizers.jsx`
+   - 배열 삽입/삭제·인덱스 접근, 연결리스트 맨앞/맨뒤, 스택 Push/Pop, 큐 Enqueue/Dequeue,
+     BST 삽입+전위/중위/후위, 그래프 BFS/DFS, 버블정렬 애니메이션, 해시 버킷+충돌체이닝
+3. 주차별 미니게임 + 문제풀이 — 기존 Games 번들 그대로 (quiz/memory/embed, 교사 공개 스위치)
+4. DS 미니퀴즈 — 각 단원 카드 하단 `QuizCard`, 정답 시 `ds_quiz_submit` → Sheets `DS진행도` 저장
+5. 포트폴리오 제출/평가/CSV/학습지 — 기존 app.py 이벤트 100% 호환
+6. 학습 진행도 저장 — `ds_store.py` (Sheets 우선, 실패 시 `data/ds_progress.json`)
 
-Streamlit의 `st.title`, `st.tabs`, `st.text_area`, `st.dataframe` 등 화면 위젯은 사용하지 않습니다. 화면은 React가 렌더링합니다.
-
-## UI 디자인
-
-Instagram의 **피드·스토리·프로필·아카이브·모바일 하단 내비게이션** 같은 익숙한 UX 패턴을 교육 포트폴리오에 맞게 재해석했습니다. 특정 서비스의 로고, 상표, 화면을 그대로 복제하지 않고 독립적인 TECH · HOME 디자인 시스템으로 구성했습니다.
-
-- Desktop: 좌측 rail navigation + 중앙 content canvas
-- Mobile: 상단 compact bar + 하단 floating navigation
-- 학생: 프로필 → 학기 진행률 → 최근 기록 → 주차별 journal → 아카이브
-- 교사: 현황 → 반별 활동량 → 최근 학생 작업 → 평가/피드백 → CSV
-
-## 1. 로컬 React 개발
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Production build:
-
-```bash
-npm run build
-```
-
-생성된 `frontend/dist`는 Streamlit Cloud에서 Node/npm 없이 바로 Custom Component로 로드할 수 있도록 프로젝트에 포함합니다.
-
-## 2. Python 의존성
+## 실행
 
 ```bash
 pip install -r requirements.txt
+streamlit run app.py
+# React 개발(선택): cd frontend && npm install && npm run dev
 ```
 
-## 3. Streamlit Secrets
+`frontend/dist`는 빌드 없이 바로 서빙됩니다 (Streamlit Cloud에서 Node 불필요).
+`src`를 수정하면 `dist`의 대응 파일에도 동일 수정 후, `dist`를 함께 커밋하세요.
+(`App.jsx`↔`src/App.jsx`, `components/*`↔`src/components/*`, `styles.css`↔`src/theme/ig-design-system.css`)
 
-`.streamlit/secrets.toml`은 GitHub에 올리지 않습니다.
+## Streamlit Secrets (`.streamlit/secrets.toml`, GitHub 업로드 금지)
 
 ```toml
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"
@@ -64,65 +50,15 @@ TEACHER_PASSWORD = "CHANGE_THIS_TO_A_LONG_PASSWORD"
 [gcp_service_account]
 type = "service_account"
 project_id = "YOUR_PROJECT_ID"
-private_key_id = "YOUR_PRIVATE_KEY_ID"
-private_key = "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-client_email = "YOUR_SERVICE_ACCOUNT_EMAIL"
-client_id = "YOUR_CLIENT_ID"
-auth_uri = "https://accounts.google.com/o/oauth2/auth"
-token_uri = "https://oauth2.googleapis.com/token"
-auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
-client_x509_cert_url = "YOUR_CLIENT_CERT_URL"
+...
 ```
 
-서비스 계정의 `client_email`을 Google Sheets에 편집자로 공유합니다.
+## Sheets 시트
 
-## 4. Google Sheets
+- 기존: `학생명단 | 주차설정 | 포트폴리오 | 제출기록 | 게임설정 | 게임기록`
+- 신규: `DS진행도` = `기록ID | 학번 | 이름 | 단원 | 점수 | 만점 | 해결일시 | 상세JSON`
+  (없으면 `ds_store`가 자동 생성. 권한 오류 시 `data/ds_progress.json` 폴백)
 
-최소 시트:
+## 디자인
 
-- `학생명단`: `학번 | 이름 | 학년 | 반 | 번호` (선택적으로 `활성` 추가 가능)
-- `주차설정`: 1~17주차 학습목표/활동지질문/배점/공개여부
-- `포트폴리오`: 제출ID/학번/이름/학년/반/주차/학습목표/활동지질문/제출내용/점수/배점/피드백/제출일시/수정일시
-- `제출기록`: 정확히 한 번 저장을 위한 event/submission ledger
-
-기존 프로젝트에서 사용하는 `학생정보`, `답안`, `결과` 시트가 있더라도 해당 저장 구조는 별도로 유지됩니다.
-
-## 5. 정확히 한 번 저장
-
-React가 제출할 때마다 고유 `submissionId`를 생성합니다.
-
-```text
-React submit
-  ↓
-submissionId
-  ↓
-Streamlit eventId guard
-  ↓
-server submission id
-  ↓
-제출기록: PROCESSING
-  ↓
-포트폴리오 upsert
-  ↓
-제출기록: COMPLETED
-```
-
-Streamlit rerun으로 동일 이벤트가 다시 전달되더라도 `eventId`와 제출 원장을 통해 중복 저장을 차단합니다.
-
-학생이 같은 주차를 수정하는 경우에는 무한 append가 아니라 해당 `학번 + 주차` 기록을 업데이트합니다.
-
-## 6. 실행
-
-```bash
-streamlit run app.py
-```
-
-## 7. Streamlit Community Cloud
-
-1. GitHub에 전체 프로젝트를 push
-2. Streamlit Community Cloud에서 repository 선택
-3. Main file: `app.py`
-4. App settings → Secrets에 Google Service Account와 `SPREADSHEET_URL`, `TEACHER_PASSWORD` 설정
-5. Deploy
-
-`frontend/dist`는 반드시 GitHub에 포함하세요. `node_modules`와 `secrets.toml`은 포함하지 않습니다.
+`INSTA_DESIGN_GUIDE.md` 참조 — 색상/레이아웃/타이포/버튼/반응형/다크모드 + 적용 방법.
