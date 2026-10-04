@@ -139,7 +139,18 @@ function Login({ flash }) {
   </main>;
 }
 function SideRail({ student, active, onChange, teacher = false }) {
-  const items = teacher ? [['dashboard','home','홈'],['students','grid','학생'],['csv','download','내보내기']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['summary','heart','나의 기록']];
+  const items = teacher
+  ? [
+      ['dashboard', 'home', '홈'],
+      ['weeks', 'plus', '주차'],
+      ['students', 'grid', '학생'],
+      ['csv', 'download', '내보내기'],
+    ]
+  : [
+      ['home', 'home', '홈'],
+      ['portfolio', 'grid', '포트폴리오'],
+      ['summary', 'heart', '나의 기록'],
+    ];
   return <aside className="side-rail">
     <div className="rail-logo"><div className="brand-mark small">TH</div><span>TECH<br/>HOME</span></div>
     <nav className="rail-nav">{items.map(([key,icon,label])=><button key={key} className={active===key?'active':''} onClick={()=>onChange(key)}><Icon name={icon}/><span>{label}</span></button>)}</nav>
@@ -147,7 +158,18 @@ function SideRail({ student, active, onChange, teacher = false }) {
   </aside>;
 }
 function MobileNav({ active, onChange, teacher = false }) {
-  const items = teacher ? [['dashboard','home','홈'],['students','grid','학생'],['csv','download','CSV']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['summary','heart','나의 기록']];
+  const items = teacher
+  ? [
+      ['dashboard', 'home', '홈'],
+      ['weeks', 'plus', '주차'],
+      ['students', 'grid', '학생'],
+      ['csv', 'download', '내보내기'],
+    ]
+  : [
+      ['home', 'home', '홈'],
+      ['portfolio', 'grid', '포트폴리오'],
+      ['summary', 'heart', '나의 기록'],
+    ];
   return <nav className="mobile-nav">{items.map(([key,icon,label])=><button key={key} className={active===key?'active':''} onClick={()=>onChange(key)}><Icon name={icon}/><span>{label}</span></button>)}</nav>;
 }
 function WeekStories({ weeks, portfolio, selected, onSelect }) {
@@ -218,10 +240,238 @@ function CsvDownload({ portfolio, students }) {
   const headers=['학번','이름','학년','반',...Array.from({length:17},(_,i)=>`${i+1}주차`),'총점']; const map=new Map(); (students||[]).forEach(s=>{const id=String(s.학번||'');if(id)map.set(id,{학번:id,이름:s.이름||'',학년:s.학년||'',반:s.반||''});}); (portfolio||[]).forEach(r=>{const id=String(r.학번);if(!map.has(id))map.set(id,{학번:id,이름:r.이름||'',학년:r.학년||'',반:r.반||''});const item=map.get(id);item[`${r.주차}주차`]=r.점수||'';item.총점=(Number(item.총점)||0)+(Number(r.점수)||0);}); const csv=[headers,...[...map.values()].map(row=>headers.map(h=>row[h]??''))].map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const href=`data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csv)}`;
   return <div className="export-page"><section className="export-hero"><div><span className="eyebrow">DATA EXPORT</span><h1>학습 데이터를<br/><i>가져가세요.</i></h1><p>전체 학생의 1—17주차 점수와 총점을 Excel에서 바로 열 수 있는 CSV로 내보냅니다.</p></div><div className="export-icon"><Icon name="download" size={42}/></div></section><div className="export-note"><div><b>포함 데이터</b><span>학번 · 이름 · 학년 · 반 · 1—17주차 점수 · 총점</span></div><a href={href} download="기술가정_포트폴리오_성적표.csv" className="ink-button"><Icon name="download" size={17}/> CSV 다운로드</a></div></div>;
 }
+function TeacherWeeks({ weeks, flash }) {
+  const byWeek = useMemo(() => {
+    const m = {};
+    (weeks || []).forEach((w) => { m[Number(w.주차)] = w; });
+    return m;
+  }, [weeks]);
+
+  const [week, setWeek] = useState(1);
+  const [goal, setGoal] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [score, setScore] = useState(10);
+  const [published, setPublished] = useState('Y');
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const w = byWeek[Number(week)];
+    setGoal(w?.학습목표 || '');
+    setPrompt(w?.활동지질문 || '');
+    setScore(Number(w?.배점) || 10);
+    setPublished(String(w?.공개여부 || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
+    setFile(null);
+  }, [week, byWeek]);
+
+  useEffect(() => {
+    if (flash) setSaving(false);
+  }, [flash?.type, flash?.text]);
+
+  const onFile = (e) => {
+    const f = e.target.files?.[0] || null;
+    setFile(f);
+  };
+
+  const save = () => {
+    if (saving) return;
+    setSaving(true);
+
+    const send = (fileName, fileBase64, mimeType) => {
+      emit('teacher_week_save', {
+        week: Number(week),
+        goal: goal.trim(),
+        prompt: prompt.trim(),
+        score: Number(score) || 10,
+        published,
+        fileName: fileName || '',
+        fileBase64: fileBase64 || '',
+        mimeType: mimeType || '',
+      });
+    };
+
+    if (!file) {
+      send('', '', '');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      // data:<mime>;base64,<payload>
+      const comma = result.indexOf(',');
+      const b64 = comma >= 0 ? result.slice(comma + 1) : result;
+      send(file.name, b64, file.type || 'application/octet-stream');
+    };
+    reader.onerror = () => {
+      setSaving(false);
+      alert('파일을 읽지 못했습니다.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="teacher-weeks">
+      <section className="weeks-hero">
+        <div>
+          <span className="eyebrow">WEEK SETUP</span>
+          <h1>주차별 포트폴리오<br /><i>등록</i></h1>
+          <p>학습목표·활동지를 등록하거나 PDF/Word를 올리면 학생 화면에 바로 반영됩니다.</p>
+        </div>
+        <div className="export-icon"><Icon name="plus" size={42} /></div>
+      </section>
+
+      <div className="weeks-layout">
+        <aside className="weeks-list card-panel">
+          <span className="eyebrow">1 — 17</span>
+          <h3>주차 선택</h3>
+          <div className="weeks-grid">
+            {Array.from({ length: 17 }, (_, i) => i + 1).map((n) => {
+              const exists = !!byWeek[n];
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  className={`week-chip ${Number(week) === n ? 'active' : ''} ${exists ? 'set' : ''}`}
+                  onClick={() => setWeek(n)}
+                >
+                  W{n}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="weeks-form card-panel">
+          <div className="form-head">
+            <span className="eyebrow">EDIT WEEK</span>
+            <h2>{week}주차 설정</h2>
+          </div>
+
+          <label>학습목표</label>
+          <input
+            className="text-input"
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            placeholder="예) 스마트홈과 주거 환경 이해하기"
+          />
+
+          <label>활동지 질문 / 안내</label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="학생에게 보여줄 활동 안내. 파일을 올리면 비어 있을 때 자동으로 채웁니다."
+            rows={6}
+          />
+
+          <div className="form-row">
+            <div>
+              <label>배점</label>
+              <input
+                className="grade-input"
+                type="number"
+                min={0}
+                max={100}
+                value={score}
+                onChange={(e) => setScore(e.target.value)}
+              />
+            </div>
+            <div>
+              <label>공개여부</label>
+              <select
+                className="text-input"
+                value={published}
+                onChange={(e) => setPublished(e.target.value)}
+              >
+                <option value="Y">공개 (Y)</option>
+                <option value="N">비공개 (N)</option>
+              </select>
+            </div>
+          </div>
+
+          <label>활동지 파일 (PDF / Word / TXT)</label>
+          <div className="file-drop">
+            <input type="file" accept=".pdf,.docx,.txt,application/pdf" onChange={onFile} />
+            <span>{file ? file.name : '파일을 선택하세요 (선택)'}</span>
+          </div>
+
+          <button
+            type="button"
+            className="ink-button full"
+            disabled={saving}
+            onClick={save}
+          >
+            <Icon name="check" size={17} />
+            {saving ? '저장 중…' : '주차 설정 저장'}
+          </button>
+        </section>
+      </div>
+    </div>
+  );
+}
 function TeacherApp({ args }) {
-  const dashboard=args.teacher||{students:[],portfolio:[],classStats:[]}; const [active,setActive]=useState('dashboard'); const [studentJump,setStudentJump]=useState('');
-  const goStudent=(sid)=>{setStudentJump(String(sid));setActive('students');};
-  return <div className="app-frame"><SideRail student={{이름:'관리자'}} teacher active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>TEACHER SPACE</span><b>{active==='dashboard'?'종합 현황':active==='students'?'학생 평가':'CSV 내보내기'}</b></div><div className="topbar-actions"><button className="refresh-button" onClick={()=>emit('teacher_refresh')}><Icon name="refresh" size={17}/><span>새로고침</span></button><button className="top-avatar" onClick={()=>emit('logout')}><Avatar name="T" accent="cool"/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='dashboard'&&<TeacherDashboard dashboard={dashboard} onStudent={goStudent}/>} {active==='students'&&<TeacherStudents dashboard={dashboard} initialStudent={studentJump}/>}  {active==='csv'&&<CsvDownload portfolio={dashboard.portfolio||[]} students={dashboard.students||[]}/>}</div></main><MobileNav active={active} onChange={setActive} teacher/></div>;
+  const dashboard = args.teacher || { students: [], portfolio: [], classStats: [] };
+  const weeks = args.weeks || [];
+  const [active, setActive] = useState('dashboard');
+  const [studentJump, setStudentJump] = useState('');
+
+  const goStudent = (sid) => {
+    setStudentJump(String(sid));
+    setActive('students');
+  };
+
+  const title =
+    active === 'dashboard'
+      ? '종합 현황'
+      : active === 'weeks'
+        ? '주차 등록'
+        : active === 'students'
+          ? '학생 평가'
+          : 'CSV 내보내기';
+
+  return (
+    <div className="app-frame">
+      <SideRail student={{ 이름: '관리자' }} teacher active={active} onChange={setActive} />
+      <main className="main-canvas">
+        <header className="topbar">
+          <div className="mobile-brand">
+            <div className="brand-mark small">TH</div>
+            <b>TECH · HOME</b>
+          </div>
+          <div className="topbar-context">
+            <span>TEACHER SPACE</span>
+            <b>{title}</b>
+          </div>
+          <div className="topbar-actions">
+            <button className="refresh-button" onClick={() => emit('teacher_refresh')}>
+              <Icon name="refresh" size={17} />
+              <span>새로고침</span>
+            </button>
+            <button className="top-avatar" onClick={() => emit('logout')}>
+              <Avatar name="T" accent="cool" />
+            </button>
+          </div>
+        </header>
+        <Flash flash={args.flash} />
+        <div className="content-wrap">
+          {active === 'dashboard' && (
+            <TeacherDashboard dashboard={dashboard} onStudent={goStudent} />
+          )}
+          {active === 'weeks' && <TeacherWeeks weeks={weeks} flash={args.flash} />}
+          {active === 'students' && (
+            <TeacherStudents dashboard={dashboard} initialStudent={studentJump} />
+          )}
+          {active === 'csv' && (
+            <CsvDownload
+              portfolio={dashboard.portfolio || []}
+              students={dashboard.students || []}
+            />
+          )}
+        </div>
+      </main>
+      <MobileNav active={active} onChange={setActive} teacher />
+    </div>
+  );
 }
 function App({ args = DEFAULT_ARGS }) {
   const [streamlitArgs, setStreamlitArgs] = useState(args || DEFAULT_ARGS);
