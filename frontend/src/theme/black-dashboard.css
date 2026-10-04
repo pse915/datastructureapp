@@ -1,0 +1,213 @@
+/* ============================================================
+ * DS BLACKBOARD — Pure Black SaaS Dashboard Theme
+ * 스크린샷(Dark Theme SaaS 대시보드) 100% 반영 단일 글로벌 테마.
+ * 원본: frontend/src/theme/black-dashboard.css
+ * 배포: npm run build 시 Vite가 번들에 포함 (별도 복사 불필요)
+ * 폰트: Pretendard(한글) + System UI 폴백. Apple Light / X.AI Obsidian
+ * 변형은 .db-app[data-theme] 오버라이드로 전환 (리로드 없음).
+ * ============================================================ */
+.db-app {
+  --db-bg: #0D0E12;
+  --db-panel: #121318;
+  --db-surface: #1A1C23;
+  --db-surface-2: #1F2128;
+  --db-border: #2D313E;
+  --db-border-soft: #23262F;
+  --db-accent: #0066FF;
+  --db-accent-2: #00D1FF;
+  --db-green: #00E676;
+  --db-green-dim: rgba(0, 230, 118, 0.12);
+  --db-blue-dim: rgba(0, 102, 255, 0.16);
+  --db-text: #FFFFFF;
+  --db-sub: #9EA5B5;
+  --db-faint: #5B6272;
+  --db-danger: #FF5C5C;
+  --db-warn: #FFB020;
+  --db-radius: 16px;
+  --db-radius-sm: 12px;
+  --db-font: 'Pretendard Variable', 'Pretendard', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  --db-mono: 'JetBrains Mono', 'D2Coding', 'Consolas', monospace;
+  min-height: 100vh;
+  background: var(--db-bg);
+  color: var(--db-text);
+  font-family: var(--db-font);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+.db-app[data-font="system"] { --db-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+/* X.AI Obsidian 변형: 완전 카본 블랙 + 얇은 테두리 */
+.db-app[data-theme="obsidian"] {
+  --db-bg: #000000; --db-panel: #0A0A0B; --db-surface: #111113;
+  --db-surface-2: #161618; --db-border: #26262A; --db-border-soft: #1C1C1F;
+  --db-accent: #1D9BF0; --db-radius: 12px;
+}
+/* Apple Light 변형 */
+.db-app[data-theme="apple-light"] {
+  --db-bg: #F2F3F5; --db-panel: #FFFFFF; --db-surface: #FFFFFF;
+  --db-surface-2: #F6F7F9; --db-border: #E2E4E9; --db-border-soft: #EDEEF1;
+  --db-text: #111216; --db-sub: #6B7280; --db-faint: #A6ADBA;
+  --db-blue-dim: rgba(0, 102, 255, 0.1); --db-green-dim: rgba(0, 180, 90, 0.1);
+}
+.db-app * { box-sizing: border-box; }
+.db-app button { font-family: inherit; }
+.db-app ::selection { background: rgba(0, 209, 255, 0.3); }
+.db-shell { width: min(100% - 32px, 1180px); margin: 0 auto; padding: 18px 0 90px; display: grid; gap: 16px; }
+
+/* ============ 상단 헤더 ============ */
+.db-header {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13, 14, 18, 0.92); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--db-border-soft);
+}
+.db-app[data-theme="apple-light"] .db-header { background: rgba(255, 255, 255, 0.92); }
+.db-header-in { width: min(100% - 32px, 1180px); margin: 0 auto; min-height: 68px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 0; }
+.db-brand { display: flex; align-items: center; gap: 11px; }
+.db-brand-mark { width: 44px; height: 44px; border-radius: 14px; background: var(--db-surface-2); border: 1px solid var(--db-border); display: grid; place-items: center; font-size: 21px; }
+.db-brand b { display: block; font-size: 16px; letter-spacing: -0.02em; }
+.db-brand small { display: block; font-size: 11px; color: var(--db-sub); }
+.db-year { font-size: 10px; font-weight: 800; color: var(--db-accent-2); background: var(--db-blue-dim); border-radius: 99px; padding: 3px 10px; margin-left: 6px; white-space: nowrap; }
+.db-cat { display: flex; gap: 4px; background: var(--db-surface); border: 1px solid var(--db-border-soft); border-radius: 14px; padding: 4px; margin: 0 auto; }
+.db-cat button { border: 0; background: transparent; color: var(--db-sub); font-size: 13.5px; font-weight: 800; border-radius: 10px; padding: 9px 18px; cursor: pointer; white-space: nowrap; }
+.db-cat button.on { background: var(--db-surface-2); color: var(--db-text); box-shadow: inset 0 0 0 1px var(--db-border); }
+.db-head-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.db-admin-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--db-surface); border: 1px solid var(--db-border-soft); color: var(--db-text); border-radius: 12px; padding: 9px 14px; font-size: 13px; font-weight: 800; cursor: pointer; }
+
+/* ============ 버튼 ============ */
+.db-btn { border: 1px solid var(--db-border); background: var(--db-surface); color: var(--db-text); border-radius: 11px; padding: 10px 16px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; justify-content: center; transition: transform 0.12s ease, filter 0.12s ease; text-decoration: none; }
+.db-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
+.db-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.db-btn-blue { background: var(--db-accent); border-color: var(--db-accent); color: #fff; box-shadow: 0 4px 18px rgba(0, 102, 255, 0.4); }
+.db-btn-green { background: var(--db-green); border-color: var(--db-green); color: #03130a; box-shadow: 0 4px 18px rgba(0, 230, 118, 0.3); }
+.db-btn-ghost { background: transparent; }
+.db-btn-sm { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+
+/* ============ 서브 탭 (아이콘 가로 버튼) ============ */
+.db-subtabs { display: flex; gap: 10px; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+.db-subtab { flex: none; display: inline-flex; align-items: center; gap: 8px; background: var(--db-surface); border: 1px solid var(--db-border-soft); color: var(--db-sub); border-radius: 13px; padding: 11px 18px; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.db-subtab .ico { font-size: 16px; }
+.db-subtab small { font-size: 10px; font-weight: 800; background: var(--db-blue-dim); color: var(--db-accent-2); border-radius: 99px; padding: 1px 8px; }
+.db-subtab.on { color: var(--db-text); border-color: var(--db-accent); box-shadow: 0 0 0 1px var(--db-accent), 0 4px 18px rgba(0, 102, 255, 0.25); }
+.db-subtab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--db-faint); }
+.db-subtab.done .dot { background: var(--db-green); box-shadow: 0 0 8px var(--db-green); }
+
+/* ============ 필터 바 ============ */
+.db-filterbar { display: flex; gap: 10px; align-items: center; background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius); padding: 14px 16px; flex-wrap: wrap; }
+.db-seg { display: flex; gap: 4px; background: var(--db-surface); border-radius: 11px; padding: 4px; }
+.db-seg button { border: 0; background: transparent; color: var(--db-sub); font-size: 12.5px; font-weight: 800; border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+.db-seg button.on { background: var(--db-surface-2); color: var(--db-text); box-shadow: inset 0 0 0 1px var(--db-border); }
+.db-search { margin-left: auto; background: var(--db-surface); border: 1px solid var(--db-border-soft); border-radius: 11px; padding: 9px 14px; color: var(--db-sub); font-size: 13px; display: flex; gap: 8px; align-items: center; min-width: 200px; }
+.db-search input { border: 0; outline: 0; background: transparent; font: inherit; color: var(--db-text); width: 100%; }
+
+/* ============ 범례 ============ */
+.db-legend { display: flex; gap: 16px; align-items: center; font-size: 13px; color: var(--db-sub); flex-wrap: wrap; }
+.db-legend b { color: var(--db-text); }
+.db-legend .k { display: inline-flex; align-items: center; gap: 6px; }
+.db-legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ============ 섹션 + 카드 그리드 ============ */
+.db-section { background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius); padding: 22px; display: grid; gap: 16px; }
+.db-section h2 { margin: 0; font-size: 19px; letter-spacing: -0.02em; }
+.db-section .desc { margin: 0; color: var(--db-sub); font-size: 13.5px; }
+.db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.db-card { background: var(--db-surface); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius); padding: 18px; display: grid; gap: 12px; cursor: pointer; transition: transform 0.14s ease, border-color 0.14s ease; text-align: left; color: var(--db-text); font: inherit; width: 100%; }
+.db-card:hover { transform: translateY(-2px); border-color: var(--db-border); }
+.db-card.sel { border-color: var(--db-accent); box-shadow: 0 0 0 1px var(--db-accent), 0 8px 30px rgba(0, 102, 255, 0.2); }
+.db-card-head { display: flex; align-items: center; gap: 10px; }
+.db-card-head .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--db-surface-2); border: 1px solid var(--db-border); display: grid; place-items: center; font-size: 20px; flex: none; }
+.db-card-head b { font-size: 15.5px; display: block; }
+.db-card-head small { font-size: 12px; color: var(--db-sub); }
+.db-pill { margin-left: auto; font-size: 11px; font-weight: 800; background: var(--db-surface-2); border: 1px solid var(--db-border); color: var(--db-sub); border-radius: 99px; padding: 4px 12px; white-space: nowrap; flex: none; }
+.db-pill.hot { color: var(--db-accent-2); border-color: var(--db-accent); }
+.db-pill.done { color: var(--db-green); border-color: var(--db-green); }
+/* 요일/단계 타일 5분할 */
+.db-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.db-day { background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius-sm); padding: 10px 6px; display: grid; gap: 6px; justify-items: center; }
+.db-day > span { font-size: 11px; font-weight: 800; color: var(--db-sub); }
+.db-tile { width: 100%; font-size: 10.5px; font-weight: 700; text-align: center; background: var(--db-surface-2); border: 1px solid var(--db-border-soft); color: var(--db-sub); border-radius: 8px; padding: 5px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-tile.hit { color: var(--db-accent-2); border-color: rgba(0, 209, 255, 0.4); }
+.db-tile.good { color: var(--db-green); border-color: rgba(0, 230, 118, 0.4); }
+.db-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.db-points li { font-size: 13px; color: var(--db-sub); background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: 9px; padding: 7px 11px; }
+.db-points li::before { content: '✓ '; color: var(--db-green); font-weight: 900; }
+
+/* ============ 상세 패널 (개념+코드+실습+퀴즈) ============ */
+.db-code { background: #0A0C10; border: 1px solid var(--db-border-soft); color: #E8EDF5; border-radius: var(--db-radius-sm); padding: 14px; font-family: var(--db-mono); font-size: 12.5px; line-height: 1.7; overflow-x: auto; margin: 0; white-space: pre; }
+.db-app[data-theme="apple-light"] .db-code { background: #101418; }
+.db-lab { border: 1px dashed var(--db-border); border-radius: var(--db-radius-sm); background: rgba(255, 255, 255, 0.015); padding: 14px; display: grid; gap: 10px; }
+.db-lab-title { font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; color: var(--db-sub); }
+.db-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.db-viz { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; min-height: 60px; }
+.db-node { min-width: 44px; height: 44px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--db-surface-2); border: 2px solid var(--db-border); border-radius: 12px; font-weight: 900; font-size: 15px; color: var(--db-text); animation: dbIn 0.25s ease; }
+.db-node.top { border-color: var(--db-accent-2); box-shadow: 0 0 0 3px rgba(0, 209, 255, 0.15); }
+.db-node.front { border-color: var(--db-accent); box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.2); }
+@keyframes dbIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.db-bars { display: flex; gap: 6px; align-items: flex-end; min-height: 110px; }
+.db-bar { flex: 1; min-width: 22px; border-radius: 6px 6px 3px 3px; background: var(--db-accent); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: flex-start; justify-content: center; padding-top: 4px; transition: height 0.2s ease; }
+.db-bar.cmp { background: var(--db-warn); }
+.db-bar.done { background: var(--db-green); }
+.db-badge { display: inline-flex; align-items: center; gap: 6px; width: fit-content; background: var(--db-surface-2); border: 1px solid var(--db-border); color: var(--db-sub); border-radius: 99px; padding: 4px 12px; font-size: 11px; font-weight: 800; }
+.db-badge.hot { color: var(--db-accent-2); border-color: var(--db-accent); }
+.db-badge.good { color: var(--db-green); border-color: var(--db-green); }
+.db-hint { color: var(--db-sub); font-size: 12.5px; }
+
+/* ============ 입력/퀴즈/진행 ============ */
+.db-input, .db-select, .db-textarea { border: 1px solid var(--db-border); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; width: 100%; background: var(--db-surface-2); color: var(--db-text); outline: 0; }
+.db-input:focus, .db-select:focus, .db-textarea:focus { border-color: var(--db-accent); box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.25); }
+.db-textarea { min-height: 120px; resize: vertical; line-height: 1.7; }
+.db-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.db-quiz-opt { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--db-border); background: var(--db-surface-2); border-radius: 12px; padding: 12px 14px; margin: 8px 0; font-size: 14px; color: var(--db-text); cursor: pointer; }
+.db-quiz-opt:hover { border-color: var(--db-accent); }
+.db-quiz-opt .letter { width: 28px; height: 28px; border-radius: 50%; background: var(--db-border); display: grid; place-items: center; font-size: 12px; font-weight: 900; flex: none; }
+.db-quiz-opt.correct { border-color: var(--db-green); background: var(--db-green-dim); }
+.db-quiz-opt.wrong { border-color: var(--db-danger); background: rgba(255, 92, 92, 0.1); }
+.db-quiz-opt:disabled { cursor: default; }
+.db-explain { background: var(--db-blue-dim); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--db-accent-2); }
+.db-progress { height: 8px; background: var(--db-surface-2); border: 1px solid var(--db-border-soft); border-radius: 99px; overflow: hidden; }
+.db-progress > i { display: block; height: 100%; background: linear-gradient(90deg, var(--db-accent), var(--db-accent-2)); border-radius: 99px; transition: width 0.3s ease; }
+.db-mem-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 6px; }
+.db-mem-card { min-height: 76px; border: 1px solid var(--db-border); border-radius: 12px; background: var(--db-surface-2); font: inherit; font-size: 22px; font-weight: 900; cursor: pointer; color: var(--db-faint); }
+.db-mem-card.face { color: var(--db-text); }
+.db-mem-card.matched { border-color: var(--db-green); color: var(--db-green); }
+.db-frame { width: 100%; min-height: 420px; border: 1px solid var(--db-border); border-radius: 12px; background: #000; }
+.db-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.db-table th { font-size: 11px; color: var(--db-sub); padding: 10px 8px; border-bottom: 1px solid var(--db-border); white-space: nowrap; }
+.db-table td { padding: 10px 8px; border-bottom: 1px solid var(--db-border-soft); text-align: center; }
+.db-toast { border-radius: 12px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; border: 1px solid var(--db-border); background: var(--db-surface); }
+.db-toast.success { border-color: var(--db-green); background: var(--db-green-dim); }
+.db-toast.error { border-color: var(--db-danger); background: rgba(255, 92, 92, 0.1); }
+.db-empty { padding: 26px; color: var(--db-sub); font-size: 13px; text-align: center; }
+.db-like-pop { width: 84px; height: 84px; margin: 6px auto; border-radius: 50%; background: linear-gradient(135deg, var(--db-accent), var(--db-accent-2)); display: grid; place-items: center; color: #fff; font-size: 34px; animation: dbIn 0.4s ease; }
+
+/* ============ 설정 모달 ============ */
+.db-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 18px; }
+.db-modal { width: min(100%, 560px); max-height: 88vh; overflow-y: auto; background: var(--db-surface); border: 1px solid var(--db-border); border-radius: 20px; box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6); }
+.db-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--db-border-soft); position: sticky; top: 0; background: var(--db-surface); }
+.db-modal-head b { font-size: 17px; }
+.db-modal-x { border: 0; background: transparent; color: var(--db-text); font-size: 22px; cursor: pointer; padding: 4px 10px; border-radius: 8px; }
+.db-modal-body { padding: 20px 22px 26px; display: grid; gap: 18px; }
+.db-modal-body h3 { margin: 0; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+.db-modal-body h3 small { margin-left: auto; font-size: 11px; color: var(--db-faint); font-weight: 600; }
+.db-theme-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.db-theme-opt { border: 1px solid var(--db-border); background: var(--db-surface-2); color: var(--db-sub); border-radius: 12px; padding: 12px 6px; font-size: 13px; font-weight: 800; cursor: pointer; }
+.db-theme-opt.on { color: var(--db-text); border-color: var(--db-accent); box-shadow: 0 0 0 1px var(--db-accent); }
+.db-dl { background: var(--db-surface-2); border: 1px solid var(--db-border-soft); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.db-dl p { margin: 0; font-size: 12.5px; color: var(--db-sub); }
+
+/* ============ 로그인 ============ */
+.db-auth-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; }
+.db-hero h1 { font-size: 30px; line-height: 1.25; letter-spacing: -0.03em; margin: 10px 0; }
+.db-hero h1 i { font-style: normal; color: var(--db-accent-2); }
+
+/* ============ 반응형 ============ */
+@media (max-width: 960px) { .db-grid { grid-template-columns: 1fr; } .db-auth-grid { grid-template-columns: 1fr; } .db-cat { order: 3; width: 100%; } }
+@media (max-width: 640px) {
+  .db-row { grid-template-columns: 1fr; }
+  .db-days { grid-template-columns: repeat(5, minmax(88px, 1fr)); overflow-x: auto; }
+  .db-search { min-width: 0; width: 100%; margin-left: 0; }
+  .db-theme-row { grid-template-columns: 1fr; }
+  .db-mem-grid { grid-template-columns: repeat(3, 1fr); }
+  .db-head-actions .db-admin-pill span.nm { display: none; }
+}

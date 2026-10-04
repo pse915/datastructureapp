@@ -1,0 +1,1366 @@
+﻿<!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>DS Blackboard</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>/* ============================================================
+ * DS BLACKBOARD — Pure Black SaaS Dashboard Theme
+ * 스크린샷(Dark Theme SaaS 대시보드) 100% 반영 단일 글로벌 테마.
+ * 원본: frontend/src/theme/black-dashboard.css
+ * 배포: npm run build 시 Vite가 번들에 포함 (별도 복사 불필요)
+ * 폰트: Pretendard(한글) + System UI 폴백. Apple Light / X.AI Obsidian
+ * 변형은 .db-app[data-theme] 오버라이드로 전환 (리로드 없음).
+ * ============================================================ */
+.db-app {
+  --db-bg: #0D0E12;
+  --db-panel: #121318;
+  --db-surface: #1A1C23;
+  --db-surface-2: #1F2128;
+  --db-border: #2D313E;
+  --db-border-soft: #23262F;
+  --db-accent: #0066FF;
+  --db-accent-2: #00D1FF;
+  --db-green: #00E676;
+  --db-green-dim: rgba(0, 230, 118, 0.12);
+  --db-blue-dim: rgba(0, 102, 255, 0.16);
+  --db-text: #FFFFFF;
+  --db-sub: #9EA5B5;
+  --db-faint: #5B6272;
+  --db-danger: #FF5C5C;
+  --db-warn: #FFB020;
+  --db-radius: 16px;
+  --db-radius-sm: 12px;
+  --db-font: 'Pretendard Variable', 'Pretendard', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  --db-mono: 'JetBrains Mono', 'D2Coding', 'Consolas', monospace;
+  min-height: 100vh;
+  background: var(--db-bg);
+  color: var(--db-text);
+  font-family: var(--db-font);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+.db-app[data-font="system"] { --db-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+/* X.AI Obsidian 변형: 완전 카본 블랙 + 얇은 테두리 */
+.db-app[data-theme="obsidian"] {
+  --db-bg: #000000; --db-panel: #0A0A0B; --db-surface: #111113;
+  --db-surface-2: #161618; --db-border: #26262A; --db-border-soft: #1C1C1F;
+  --db-accent: #1D9BF0; --db-radius: 12px;
+}
+/* Apple Light 변형 */
+.db-app[data-theme="apple-light"] {
+  --db-bg: #F2F3F5; --db-panel: #FFFFFF; --db-surface: #FFFFFF;
+  --db-surface-2: #F6F7F9; --db-border: #E2E4E9; --db-border-soft: #EDEEF1;
+  --db-text: #111216; --db-sub: #6B7280; --db-faint: #A6ADBA;
+  --db-blue-dim: rgba(0, 102, 255, 0.1); --db-green-dim: rgba(0, 180, 90, 0.1);
+}
+.db-app * { box-sizing: border-box; }
+.db-app button { font-family: inherit; }
+.db-app ::selection { background: rgba(0, 209, 255, 0.3); }
+.db-shell { width: min(100% - 32px, 1180px); margin: 0 auto; padding: 18px 0 90px; display: grid; gap: 16px; }
+
+/* ============ 상단 헤더 ============ */
+.db-header {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13, 14, 18, 0.92); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--db-border-soft);
+}
+.db-app[data-theme="apple-light"] .db-header { background: rgba(255, 255, 255, 0.92); }
+.db-header-in { width: min(100% - 32px, 1180px); margin: 0 auto; min-height: 68px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 0; }
+.db-brand { display: flex; align-items: center; gap: 11px; }
+.db-brand-mark { width: 44px; height: 44px; border-radius: 14px; background: var(--db-surface-2); border: 1px solid var(--db-border); display: grid; place-items: center; font-size: 21px; }
+.db-brand b { display: block; font-size: 16px; letter-spacing: -0.02em; }
+.db-brand small { display: block; font-size: 11px; color: var(--db-sub); }
+.db-year { font-size: 10px; font-weight: 800; color: var(--db-accent-2); background: var(--db-blue-dim); border-radius: 99px; padding: 3px 10px; margin-left: 6px; white-space: nowrap; }
+.db-cat { display: flex; gap: 4px; background: var(--db-surface); border: 1px solid var(--db-border-soft); border-radius: 14px; padding: 4px; margin: 0 auto; }
+.db-cat button { border: 0; background: transparent; color: var(--db-sub); font-size: 13.5px; font-weight: 800; border-radius: 10px; padding: 9px 18px; cursor: pointer; white-space: nowrap; }
+.db-cat button.on { background: var(--db-surface-2); color: var(--db-text); box-shadow: inset 0 0 0 1px var(--db-border); }
+.db-head-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.db-admin-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--db-surface); border: 1px solid var(--db-border-soft); color: var(--db-text); border-radius: 12px; padding: 9px 14px; font-size: 13px; font-weight: 800; cursor: pointer; }
+
+/* ============ 버튼 ============ */
+.db-btn { border: 1px solid var(--db-border); background: var(--db-surface); color: var(--db-text); border-radius: 11px; padding: 10px 16px; font-size: 13.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; justify-content: center; transition: transform 0.12s ease, filter 0.12s ease; text-decoration: none; }
+.db-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
+.db-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.db-btn-blue { background: var(--db-accent); border-color: var(--db-accent); color: #fff; box-shadow: 0 4px 18px rgba(0, 102, 255, 0.4); }
+.db-btn-green { background: var(--db-green); border-color: var(--db-green); color: #03130a; box-shadow: 0 4px 18px rgba(0, 230, 118, 0.3); }
+.db-btn-ghost { background: transparent; }
+.db-btn-sm { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+
+/* ============ 서브 탭 (아이콘 가로 버튼) ============ */
+.db-subtabs { display: flex; gap: 10px; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+.db-subtab { flex: none; display: inline-flex; align-items: center; gap: 8px; background: var(--db-surface); border: 1px solid var(--db-border-soft); color: var(--db-sub); border-radius: 13px; padding: 11px 18px; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.db-subtab .ico { font-size: 16px; }
+.db-subtab small { font-size: 10px; font-weight: 800; background: var(--db-blue-dim); color: var(--db-accent-2); border-radius: 99px; padding: 1px 8px; }
+.db-subtab.on { color: var(--db-text); border-color: var(--db-accent); box-shadow: 0 0 0 1px var(--db-accent), 0 4px 18px rgba(0, 102, 255, 0.25); }
+.db-subtab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--db-faint); }
+.db-subtab.done .dot { background: var(--db-green); box-shadow: 0 0 8px var(--db-green); }
+
+/* ============ 필터 바 ============ */
+.db-filterbar { display: flex; gap: 10px; align-items: center; background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius); padding: 14px 16px; flex-wrap: wrap; }
+.db-seg { display: flex; gap: 4px; background: var(--db-surface); border-radius: 11px; padding: 4px; }
+.db-seg button { border: 0; background: transparent; color: var(--db-sub); font-size: 12.5px; font-weight: 800; border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+.db-seg button.on { background: var(--db-surface-2); color: var(--db-text); box-shadow: inset 0 0 0 1px var(--db-border); }
+.db-search { margin-left: auto; background: var(--db-surface); border: 1px solid var(--db-border-soft); border-radius: 11px; padding: 9px 14px; color: var(--db-sub); font-size: 13px; display: flex; gap: 8px; align-items: center; min-width: 200px; }
+.db-search input { border: 0; outline: 0; background: transparent; font: inherit; color: var(--db-text); width: 100%; }
+
+/* ============ 범례 ============ */
+.db-legend { display: flex; gap: 16px; align-items: center; font-size: 13px; color: var(--db-sub); flex-wrap: wrap; }
+.db-legend b { color: var(--db-text); }
+.db-legend .k { display: inline-flex; align-items: center; gap: 6px; }
+.db-legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ============ 섹션 + 카드 그리드 ============ */
+.db-section { background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius); padding: 22px; display: grid; gap: 16px; }
+.db-section h2 { margin: 0; font-size: 19px; letter-spacing: -0.02em; }
+.db-section .desc { margin: 0; color: var(--db-sub); font-size: 13.5px; }
+.db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.db-card { background: var(--db-surface); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius); padding: 18px; display: grid; gap: 12px; cursor: pointer; transition: transform 0.14s ease, border-color 0.14s ease; text-align: left; color: var(--db-text); font: inherit; width: 100%; }
+.db-card:hover { transform: translateY(-2px); border-color: var(--db-border); }
+.db-card.sel { border-color: var(--db-accent); box-shadow: 0 0 0 1px var(--db-accent), 0 8px 30px rgba(0, 102, 255, 0.2); }
+.db-card-head { display: flex; align-items: center; gap: 10px; }
+.db-card-head .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--db-surface-2); border: 1px solid var(--db-border); display: grid; place-items: center; font-size: 20px; flex: none; }
+.db-card-head b { font-size: 15.5px; display: block; }
+.db-card-head small { font-size: 12px; color: var(--db-sub); }
+.db-pill { margin-left: auto; font-size: 11px; font-weight: 800; background: var(--db-surface-2); border: 1px solid var(--db-border); color: var(--db-sub); border-radius: 99px; padding: 4px 12px; white-space: nowrap; flex: none; }
+.db-pill.hot { color: var(--db-accent-2); border-color: var(--db-accent); }
+.db-pill.done { color: var(--db-green); border-color: var(--db-green); }
+/* 요일/단계 타일 5분할 */
+.db-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.db-day { background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: var(--db-radius-sm); padding: 10px 6px; display: grid; gap: 6px; justify-items: center; }
+.db-day > span { font-size: 11px; font-weight: 800; color: var(--db-sub); }
+.db-tile { width: 100%; font-size: 10.5px; font-weight: 700; text-align: center; background: var(--db-surface-2); border: 1px solid var(--db-border-soft); color: var(--db-sub); border-radius: 8px; padding: 5px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-tile.hit { color: var(--db-accent-2); border-color: rgba(0, 209, 255, 0.4); }
+.db-tile.good { color: var(--db-green); border-color: rgba(0, 230, 118, 0.4); }
+.db-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.db-points li { font-size: 13px; color: var(--db-sub); background: var(--db-panel); border: 1px solid var(--db-border-soft); border-radius: 9px; padding: 7px 11px; }
+.db-points li::before { content: '✓ '; color: var(--db-green); font-weight: 900; }
+
+/* ============ 상세 패널 (개념+코드+실습+퀴즈) ============ */
+.db-code { background: #0A0C10; border: 1px solid var(--db-border-soft); color: #E8EDF5; border-radius: var(--db-radius-sm); padding: 14px; font-family: var(--db-mono); font-size: 12.5px; line-height: 1.7; overflow-x: auto; margin: 0; white-space: pre; }
+.db-app[data-theme="apple-light"] .db-code { background: #101418; }
+.db-lab { border: 1px dashed var(--db-border); border-radius: var(--db-radius-sm); background: rgba(255, 255, 255, 0.015); padding: 14px; display: grid; gap: 10px; }
+.db-lab-title { font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; color: var(--db-sub); }
+.db-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.db-viz { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; min-height: 60px; }
+.db-node { min-width: 44px; height: 44px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--db-surface-2); border: 2px solid var(--db-border); border-radius: 12px; font-weight: 900; font-size: 15px; color: var(--db-text); animation: dbIn 0.25s ease; }
+.db-node.top { border-color: var(--db-accent-2); box-shadow: 0 0 0 3px rgba(0, 209, 255, 0.15); }
+.db-node.front { border-color: var(--db-accent); box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.2); }
+@keyframes dbIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.db-bars { display: flex; gap: 6px; align-items: flex-end; min-height: 110px; }
+.db-bar { flex: 1; min-width: 22px; border-radius: 6px 6px 3px 3px; background: var(--db-accent); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: flex-start; justify-content: center; padding-top: 4px; transition: height 0.2s ease; }
+.db-bar.cmp { background: var(--db-warn); }
+.db-bar.done { background: var(--db-green); }
+.db-badge { display: inline-flex; align-items: center; gap: 6px; width: fit-content; background: var(--db-surface-2); border: 1px solid var(--db-border); color: var(--db-sub); border-radius: 99px; padding: 4px 12px; font-size: 11px; font-weight: 800; }
+.db-badge.hot { color: var(--db-accent-2); border-color: var(--db-accent); }
+.db-badge.good { color: var(--db-green); border-color: var(--db-green); }
+.db-hint { color: var(--db-sub); font-size: 12.5px; }
+
+/* ============ 입력/퀴즈/진행 ============ */
+.db-input, .db-select, .db-textarea { border: 1px solid var(--db-border); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; width: 100%; background: var(--db-surface-2); color: var(--db-text); outline: 0; }
+.db-input:focus, .db-select:focus, .db-textarea:focus { border-color: var(--db-accent); box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.25); }
+.db-textarea { min-height: 120px; resize: vertical; line-height: 1.7; }
+.db-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.db-quiz-opt { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--db-border); background: var(--db-surface-2); border-radius: 12px; padding: 12px 14px; margin: 8px 0; font-size: 14px; color: var(--db-text); cursor: pointer; }
+.db-quiz-opt:hover { border-color: var(--db-accent); }
+.db-quiz-opt .letter { width: 28px; height: 28px; border-radius: 50%; background: var(--db-border); display: grid; place-items: center; font-size: 12px; font-weight: 900; flex: none; }
+.db-quiz-opt.correct { border-color: var(--db-green); background: var(--db-green-dim); }
+.db-quiz-opt.wrong { border-color: var(--db-danger); background: rgba(255, 92, 92, 0.1); }
+.db-quiz-opt:disabled { cursor: default; }
+.db-explain { background: var(--db-blue-dim); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--db-accent-2); }
+.db-progress { height: 8px; background: var(--db-surface-2); border: 1px solid var(--db-border-soft); border-radius: 99px; overflow: hidden; }
+.db-progress > i { display: block; height: 100%; background: linear-gradient(90deg, var(--db-accent), var(--db-accent-2)); border-radius: 99px; transition: width 0.3s ease; }
+.db-mem-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 6px; }
+.db-mem-card { min-height: 76px; border: 1px solid var(--db-border); border-radius: 12px; background: var(--db-surface-2); font: inherit; font-size: 22px; font-weight: 900; cursor: pointer; color: var(--db-faint); }
+.db-mem-card.face { color: var(--db-text); }
+.db-mem-card.matched { border-color: var(--db-green); color: var(--db-green); }
+.db-frame { width: 100%; min-height: 420px; border: 1px solid var(--db-border); border-radius: 12px; background: #000; }
+.db-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.db-table th { font-size: 11px; color: var(--db-sub); padding: 10px 8px; border-bottom: 1px solid var(--db-border); white-space: nowrap; }
+.db-table td { padding: 10px 8px; border-bottom: 1px solid var(--db-border-soft); text-align: center; }
+.db-toast { border-radius: 12px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; border: 1px solid var(--db-border); background: var(--db-surface); }
+.db-toast.success { border-color: var(--db-green); background: var(--db-green-dim); }
+.db-toast.error { border-color: var(--db-danger); background: rgba(255, 92, 92, 0.1); }
+.db-empty { padding: 26px; color: var(--db-sub); font-size: 13px; text-align: center; }
+.db-like-pop { width: 84px; height: 84px; margin: 6px auto; border-radius: 50%; background: linear-gradient(135deg, var(--db-accent), var(--db-accent-2)); display: grid; place-items: center; color: #fff; font-size: 34px; animation: dbIn 0.4s ease; }
+
+/* ============ 설정 모달 ============ */
+.db-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 18px; }
+.db-modal { width: min(100%, 560px); max-height: 88vh; overflow-y: auto; background: var(--db-surface); border: 1px solid var(--db-border); border-radius: 20px; box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6); }
+.db-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--db-border-soft); position: sticky; top: 0; background: var(--db-surface); }
+.db-modal-head b { font-size: 17px; }
+.db-modal-x { border: 0; background: transparent; color: var(--db-text); font-size: 22px; cursor: pointer; padding: 4px 10px; border-radius: 8px; }
+.db-modal-body { padding: 20px 22px 26px; display: grid; gap: 18px; }
+.db-modal-body h3 { margin: 0; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+.db-modal-body h3 small { margin-left: auto; font-size: 11px; color: var(--db-faint); font-weight: 600; }
+.db-theme-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.db-theme-opt { border: 1px solid var(--db-border); background: var(--db-surface-2); color: var(--db-sub); border-radius: 12px; padding: 12px 6px; font-size: 13px; font-weight: 800; cursor: pointer; }
+.db-theme-opt.on { color: var(--db-text); border-color: var(--db-accent); box-shadow: 0 0 0 1px var(--db-accent); }
+.db-dl { background: var(--db-surface-2); border: 1px solid var(--db-border-soft); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.db-dl p { margin: 0; font-size: 12.5px; color: var(--db-sub); }
+
+/* ============ 로그인 ============ */
+.db-auth-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; }
+.db-hero h1 { font-size: 30px; line-height: 1.25; letter-spacing: -0.03em; margin: 10px 0; }
+.db-hero h1 i { font-style: normal; color: var(--db-accent-2); }
+
+/* ============ 반응형 ============ */
+@media (max-width: 960px) { .db-grid { grid-template-columns: 1fr; } .db-auth-grid { grid-template-columns: 1fr; } .db-cat { order: 3; width: 100%; } }
+@media (max-width: 640px) {
+  .db-row { grid-template-columns: 1fr; }
+  .db-days { grid-template-columns: repeat(5, minmax(88px, 1fr)); overflow-x: auto; }
+  .db-search { min-width: 0; width: 100%; margin-left: 0; }
+  .db-theme-row { grid-template-columns: 1fr; }
+  .db-mem-grid { grid-template-columns: repeat(3, 1fr); }
+  .db-head-actions .db-admin-pill span.nm { display: none; }
+}
+</style></head><body style="margin:0;background:#0D0E12"><div id="root"></div><div id="boot-error" style="display:none;max-width:640px;margin:40px auto;padding:20px;border-radius:14px;background:#1A1C23;color:#fff;border:1px solid #2D313E;font-family:sans-serif;font-size:13px"></div><script>window.addEventListener("error", function (e) { var box = document.getElementById("boot-error"); if (!box || !e || !e.target || e.target === window) return; var src = e.target.src || e.target.href || ""; if (!src) return; box.style.display = "block"; box.textContent = "frontend/build 로딩 문제: " + src; }, true);</script><script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script><script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script><script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script><script type="text/babel" data-presets="react">/* 0. hooks globals */
+const { useState: __us, useEffect: __ue, useMemo: __um, useRef: __ur, useReducer: __ud } = React;
+const useState = __us; const useEffect = __ue; const useMemo = __um; const useRef = __ur; const useReducer = __ud;
+/* 1. dsCurriculum */
+// 자료구조 단원 데이터: 개념 + 코드 + 퀴즈
+// Vite용 모듈이자 dist 번들(App.jsx)에 인라인되는 원본.
+
+const DS_UNITS = [
+  {
+    id: 'array', label: '배열', icon: '🧱', handle: '@array.basics',
+    title: '배열 — 인덱스로 바로 찾는 연속 공간',
+    desc: '같은 타입의 데이터를 메모리 연속 공간에 저장합니다. 인덱스로 O(1) 접근이 가능하지만, 중간 삽입/삭제는 O(n) 비용이 듭니다.',
+    points: ['인덱스 접근 O(1), 탐색 O(n)', '크기가 고정되면 삽입/삭제가 비쌈', '정렬·탐색 알고리즘의 기본 무대'],
+    code: `# Python 리스트는 동적 배열\narr = [10, 20, 30, 40]\nprint(arr[2])      # 30, O(1)\narr.insert(1, 99)  # 중간 삽입 O(n)\nprint(arr)`,
+    quiz: { q: '배열 arr 길이가 n일 때 arr[i] 접근 시간복잡도는?', options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'], answer: 0, explain: '인덱스 연산은 시작 주소 + i×원소크기로 바로 계산되므로 O(1)입니다.' },
+  },
+  {
+    id: 'linkedlist', label: '연결리스트', icon: '🔗', handle: '@linked.list',
+    title: '연결리스트 — 노드가 손잡고 줄서기',
+    desc: '각 노드가 값(data)과 다음 노드 주소(next)를 가집니다. 삽입/삭제는 링크만 바꾸면 되지만, 탐색은 head부터 순회해야 합니다.',
+    points: ['삽입/삭제 O(1) — 위치를 알 때', '탐색 O(n) — 순차 접근', '스택·큐·해시충돌 체이닝의 뼈대'],
+    code: `class Node:\n    def __init__(self, v):\n        self.data = v\n        self.next = None\n\na = Node(10); b = Node(20)\na.next = b  # 10 -> 20 연결`,
+    quiz: { q: '단일 연결리스트에서 head부터 k번째 노드 탐색 비용은?', options: ['O(1)', 'O(k)', 'O(log n)', 'O(n log n)'], answer: 1, explain: '앞에서부터 k번 이동해야 하므로 O(k), 전체 기준 O(n)입니다.' },
+  },
+  {
+    id: 'stack', label: '스택', icon: '🥞', handle: '@stack.lifo',
+    title: '스택 — LIFO, 접시 쌓기 (Push / Pop)',
+    desc: 'Last-In-First-Out. push로 쌓고 pop으로 꺼냅니다. 함수 호출 스택, 뒤로가기, 괄호 검사에 쓰입니다.',
+    points: ['push / pop / peek 모두 O(1)', 'top에서만 출입 — LIFO', 'DFS·백트래킹·수식 계산의 핵심'],
+    code: `stack = []\nstack.append(1)  # push\nstack.append(2)\nprint(stack.pop())  # 2 (LIFO)\nprint(stack[-1])    # peek: 1`,
+    quiz: { q: 'push 1,2,3 후 pop 2번의 결과 순서는?', options: ['3, 2', '1, 2', '2, 3', '3, 1'], answer: 0, explain: 'LIFO이므로 마지막에 들어간 3, 2 순서로 나옵니다.' },
+  },
+  {
+    id: 'queue', label: '큐', icon: '🎢', handle: '@queue.fifo',
+    title: '큐 — FIFO, 줄서기 (Enqueue / Dequeue)',
+    desc: 'First-In-First-Out. 뒤(rear)로 들어와 앞(front)으로 나갑니다. BFS, 작업 스케줄링, 버퍼에 쓰입니다.',
+    points: ['enqueue / dequeue O(1)', 'front에서만 꺼냄 — FIFO', 'BFS·프린터 대기열·메시지큐'],
+    code: `from collections import deque\nq = deque()\nq.append(1)   # enqueue\nq.append(2)\nprint(q.popleft())  # 1 (FIFO)`,
+    quiz: { q: 'enqueue 1,2,3 후 dequeue 1번의 결과는?', options: ['1', '2', '3', '에러'], answer: 0, explain: 'FIFO이므로 가장 먼저 들어간 1이 나옵니다.' },
+  },
+  {
+    id: 'tree', label: '트리', icon: '🌳', handle: '@tree.bst',
+    title: '트리 — 계층 구조와 BST 탐색',
+    desc: '부모-자식 계층 구조입니다. 이진탐색트리(BST)는 왼쪽<부모<오른쪽 규칙으로 평균 O(log n) 탐색을 제공합니다.',
+    points: ['전위·중위·후위·레벨 순회', 'BST 평균 탐색 O(log n)', '힙·DB 인덱스·파일시스템의 기초'],
+    code: `# BST 삽입 규칙\n# left < node < right\n# 중위순회(inorder) = 오름차순 정렬 결과\n# 예: 50,30,70,20,40 삽입\n# inorder -> 20 30 40 50 70`,
+    quiz: { q: 'BST에 50,30,70,20,40 삽입 후 inorder 결과는?', options: ['20 30 40 50 70', '50 30 20 40 70', '20 40 30 70 50', '50 70 30 40 20'], answer: 0, explain: 'BST의 중위순회는 항상 오름차순으로 정렬됩니다.' },
+  },
+  {
+    id: 'graph', label: '그래프', icon: '🕸️', handle: '@graph.bfs_dfs',
+    title: '그래프 — 정점과 간선, BFS / DFS',
+    desc: '정점(V)과 간선(E)의 관계망입니다. BFS는 큐로 가까운 순, DFS는 스택/재귀로 깊은 순으로 탐색합니다.',
+    points: ['BFS = 큐, 최단거리 탐색', 'DFS = 스택/재귀, 경로·사이클 탐색', '지도·SNS·네트워크 라우팅'],
+    code: `from collections import deque\ngraph = {'A':['B','C'],'B':['D'],'C':['D'],'D':[]}\n# BFS: A C B D 순 (레벨순)\n# DFS: A B D C 순 (깊은순)`,
+    quiz: { q: '가중치 없는 그래프 최단경로에 적합한 탐색은?', options: ['BFS', 'DFS', '완전탐색만', '정렬'], answer: 0, explain: 'BFS는 시작점에서 레벨 순서로 퍼지므로 최단거리를 보장합니다.' },
+  },
+  {
+    id: 'sort', label: '정렬', icon: '📊', handle: '@sort.compare',
+    title: '정렬 — 버블·선택·삽입 비교하기',
+    desc: '대표 비교정렬 3종을 막대 애니메이션으로 비교합니다. 모두 평균 O(n²)이지만 교환/비교 횟수와 직관이 다릅니다.',
+    points: ['버블: 이웃 교환, 큰 값 뒤로', '선택: 최소값 골라 앞으로', '삽입: 손패 정렬하듯 끼워넣기'],
+    code: `# 버블 정렬 핵심\nfor i in range(n):\n    for j in range(n-1-i):\n        if a[j] > a[j+1]:\n            a[j], a[j+1] = a[j+1], a[j]`,
+    quiz: { q: '이미 정렬된 배열에 가장 빠른 비교정렬(최적화 시)은?', options: ['버블 O(n)', '선택 O(n²)', '삽입 O(n)', '모두 O(n²) 고정'], answer: 2, explain: '삽입정렬은 이미 정렬된 경우 각 원소를 한 번씩만 확인하므로 O(n)입니다.' },
+  },
+  {
+    id: 'hash', label: '해시', icon: '🧮', handle: '@hash.table',
+    title: '해시 — 키로 바로 찾는 사전',
+    desc: '해시함수 h(key)로 버킷 위치를 계산합니다. 평균 O(1) 탐색, 충돌은 체이닝/개방주소로 해결합니다.',
+    points: ['평균 탐색/삽입 O(1)', '충돌 해결: 체이닝·개방주소', '딕셔너리·캐시·DB 인덱스'],
+    code: `table = {}\ntable['apple'] = 3   # h('apple') -> 버킷\nprint(table['apple'])  # 평균 O(1)\n# 충돌: 서로 다른 키가 같은 버킷`,
+    quiz: { q: '해시테이블 평균 탐색 시간복잡도는?', options: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'], answer: 0, explain: '충돌이 잘 분산되면 해시 계산 한 번으로 바로 접근하므로 평균 O(1)입니다.' },
+  },
+];
+
+const DS_IDS = DS_UNITS.map((u) => u.id);
+
+window.DS_UNITS = DS_UNITS; window.DS_IDS = DS_IDS;
+/* 2. Visualizers */
+// 인터랙티브 시각화 컴포넌트 (Vite 모듈 버전)
+// dist/App.jsx 번들본과 로직 동일. 수정 시 양쪽 동기화.
+
+
+function StackViz() {
+  const [stack, setStack] = useState([10, 20, 30]);
+  const [val, setVal] = useState('');
+  const [msg, setMsg] = useState('top = 맨 위 원소');
+  const push = () => {
+    const v = val.trim() === '' ? Math.floor(Math.random() * 90) + 10 : val.trim();
+    setStack((s) => [...s, v]); setVal(''); setMsg(`push(${v}) — top에 쌓임`);
+  };
+  const pop = () => {
+    if (!stack.length) { setMsg('underflow! 스택이 비었어요.'); return; }
+    const top = stack[stack.length - 1];
+    setStack((s) => s.slice(0, -1)); setMsg(`pop() → ${top} 꺼냄 (LIFO)`);
+  };
+  return (
+    <div>
+      <div className="db-controls">
+        <input className="db-input" style={{ maxWidth: 140 }} value={val} onChange={(e) => setVal(e.target.value)} placeholder="값 (비우면 랜덤)" />
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={push}>Push</button>
+        <button className="db-btn db-btn-sm" onClick={pop}>Pop</button>
+        <button className="db-btn db-btn-sm" onClick={() => setStack([])}>Clear</button>
+      </div>
+      <div className="db-viz" style={{ flexDirection: 'column-reverse', alignItems: 'stretch' }}>
+        {stack.length === 0 && <div className="db-empty">비어 있음 — Push로 쌓아보세요.</div>}
+        {[...stack].reverse().map((v, i) => (
+          <div key={`${i}-${v}`} className={`db-node ${i === 0 ? 'top' : ''}`} style={{ width: '100%' }}>
+            {String(v)} {i === 0 && <span style={{ fontSize: 11, fontWeight: 800, color: '#cc2366' }}>← top</span>}
+          </div>
+        ))}
+      </div>
+      <p className="db-hint">{msg} · push/pop O(1)</p>
+    </div>
+  );
+}
+
+function QueueViz() {
+  const [q, setQ] = useState([10, 20, 30]);
+  const [val, setVal] = useState('');
+  const [msg, setMsg] = useState('front = 맨 앞(꺼내는 쪽)');
+  const enq = () => {
+    const v = val.trim() === '' ? Math.floor(Math.random() * 90) + 10 : val.trim();
+    setQ((s) => [...s, v]); setVal(''); setMsg(`enqueue(${v}) — rear에 줄섬`);
+  };
+  const deq = () => {
+    if (!q.length) { setMsg('empty! 큐가 비었어요.'); return; }
+    setQ((s) => s.slice(1)); setMsg(`dequeue() → ${q[0]} 나감 (FIFO)`);
+  };
+  return (
+    <div>
+      <div className="db-controls">
+        <input className="db-input" style={{ maxWidth: 140 }} value={val} onChange={(e) => setVal(e.target.value)} placeholder="값 (비우면 랜덤)" />
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={enq}>Enqueue</button>
+        <button className="db-btn db-btn-sm" onClick={deq}>Dequeue</button>
+        <button className="db-btn db-btn-sm" onClick={() => setQ([])}>Clear</button>
+      </div>
+      <div className="db-viz">
+        {q.length === 0 && <div className="db-empty">비어 있음 — Enqueue로 줄세우세요.</div>}
+        {q.map((v, i) => (
+          <React.Fragment key={`${i}-${v}`}>
+            <div className={`db-node ${i === 0 ? 'front' : ''}`}>{String(v)}{i === 0 && ' ◀front'}{i === q.length - 1 && q.length > 1 && ' rear▶'}</div>
+            {i < q.length - 1 && <span className="db-arrow">→</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      <p className="db-hint">{msg} · enqueue/dequeue O(1)</p>
+    </div>
+  );
+}
+
+function LinkedListViz() {
+  const [nodes, setNodes] = useState([10, 20, 30]);
+  const [val, setVal] = useState('');
+  const [msg, setMsg] = useState('head → … → None');
+  const insertHead = () => {
+    const v = val.trim() === '' ? Math.floor(Math.random() * 90) + 10 : val.trim();
+    setNodes((s) => [v, ...s]); setVal(''); setMsg(`insert_head(${v}) — 맨 앞에 연결 O(1)`);
+  };
+  const append = () => {
+    const v = val.trim() === '' ? Math.floor(Math.random() * 90) + 10 : val.trim();
+    setNodes((s) => [...s, v]); setVal(''); setMsg(`append(${v}) — 맨 뒤에 연결 O(n) 순회`);
+  };
+  const removeHead = () => {
+    if (!nodes.length) { setMsg('빈 리스트입니다.'); return; }
+    setNodes((s) => s.slice(1)); setMsg(`delete_head() → ${nodes[0]} 제거`);
+  };
+  return (
+    <div>
+      <div className="db-controls">
+        <input className="db-input" style={{ maxWidth: 140 }} value={val} onChange={(e) => setVal(e.target.value)} placeholder="값" />
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={insertHead}>맨앞 삽입</button>
+        <button className="db-btn db-btn-sm" onClick={append}>맨뒤 추가</button>
+        <button className="db-btn db-btn-sm" onClick={removeHead}>맨앞 삭제</button>
+      </div>
+      <div className="db-viz">
+        <span className="db-badge">head</span>
+        {nodes.length === 0 && <span className="db-hint">None (빈 리스트)</span>}
+        {nodes.map((v, i) => (
+          <React.Fragment key={`${i}-${v}`}>
+            <div className="db-node">{String(v)}</div>
+            <span className="db-arrow">→</span>
+          </React.Fragment>
+        ))}
+        <span className="db-badge">None</span>
+      </div>
+      <p className="db-hint">{msg}</p>
+    </div>
+  );
+}
+
+function bstInsert(root, v) {
+  if (!root) return { v, l: null, r: null };
+  if (v < root.v) return { ...root, l: bstInsert(root.l, v) };
+  if (v > root.v) return { ...root, r: bstInsert(root.r, v) };
+  return root;
+}
+function bstWalk(root, order = 'in', out = []) {
+  if (!root) return out;
+  if (order === 'pre') out.push(root.v);
+  bstWalk(root.l, order, out);
+  if (order === 'in') out.push(root.v);
+  bstWalk(root.r, order, out);
+  if (order === 'post') out.push(root.v);
+  return out;
+}
+function bstLayout(root, x = 0, y = 0, dx = 90, nodes = [], edges = []) {
+  if (!root) return { nodes, edges };
+  nodes.push({ v: root.v, x, y });
+  if (root.l) { edges.push([x, y, x - dx, y + 58]); bstLayout(root.l, x - dx, y + 58, dx * 0.6, nodes, edges); }
+  if (root.r) { edges.push([x, y, x + dx, y + 58]); bstLayout(root.r, x + dx, y + 58, dx * 0.6, nodes, edges); }
+  return { nodes, edges };
+}
+
+function TreeViz() {
+  const [vals, setVals] = useState([50, 30, 70, 20, 40]);
+  const [val, setVal] = useState('');
+  const [order, setOrder] = useState('in');
+  const root = useMemo(() => vals.reduce((r, v) => bstInsert(r, v), null), [vals]);
+  const { nodes, edges } = useMemo(() => bstLayout(root), [root]);
+  const seq = useMemo(() => bstWalk(root, order, []), [root, order]);
+  const W = 340, H = Math.max(150, (root ? 150 : 100));
+  const add = () => {
+    const n = parseInt(val, 10);
+    const v = Number.isNaN(n) ? Math.floor(Math.random() * 90) + 10 : n;
+    if (vals.includes(v)) return;
+    setVals((s) => [...s, v]); setVal('');
+  };
+  return (
+    <div>
+      <div className="db-controls">
+        <input className="db-input" style={{ maxWidth: 120 }} value={val} onChange={(e) => setVal(e.target.value)} placeholder="숫자" inputMode="numeric" />
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={add}>삽입</button>
+        <button className="db-btn db-btn-sm" onClick={() => setVals([50, 30, 70, 20, 40])}>리셋</button>
+        {['pre', 'in', 'post'].map((o) => (
+          <button key={o} className={`db-btn db-btn-sm ${order === o ? 'db-btn-grad' : ''}`} onClick={() => setOrder(o)}>
+            {o === 'pre' ? '전위' : o === 'in' ? '중위' : '후위'}
+          </button>
+        ))}
+      </div>
+      <svg viewBox={`-170 -20 ${W} ${H + 40}`} style={{ width: '100%', background: '#fff', border: '1px solid #EFEFEF', borderRadius: 12 }}>
+        {edges.map(([x1, y1, x2, y2], i) => <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#C7C7C7" strokeWidth="2" />)}
+        {nodes.map((n, i) => (
+          <g key={`${n.v}-${i}`}>
+            <circle cx={n.x} cy={n.y} r="17" fill="#fff" stroke="#cc2366" strokeWidth="2.5" />
+            <text x={n.x} y={n.y + 5} textAnchor="middle" fontSize="12" fontWeight="900" fill="#262626">{n.v}</text>
+          </g>
+        ))}
+      </svg>
+      <p className="db-hint">순회 결과 ({order}): <b>{seq.join(' → ') || '—'}</b></p>
+    </div>
+  );
+}
+
+const G_NODES = { A: [40, 30], B: [130, 30], C: [40, 120], D: [130, 120], E: [220, 75] };
+const G_EDGES = [['A', 'B'], ['A', 'C'], ['B', 'D'], ['C', 'D'], ['D', 'E'], ['B', 'E']];
+const G_ADJ = { A: ['B', 'C'], B: ['A', 'D', 'E'], C: ['A', 'D'], D: ['B', 'C', 'E'], E: ['B', 'D'] };
+
+function GraphViz() {
+  const [visited, setVisited] = useState([]);
+  const [mode, setMode] = useState('BFS');
+  const run = () => {
+    const seen = []; const q = ['A']; const mark = new Set(['A']);
+    if (mode === 'BFS') {
+      while (q.length) { const cur = q.shift(); seen.push(cur); for (const nx of G_ADJ[cur]) if (!mark.has(nx)) { mark.add(nx); q.push(nx); } }
+    } else {
+      const st = ['A'];
+      while (st.length) { const cur = st.pop(); if (seen.includes(cur)) continue; seen.push(cur); for (let i = G_ADJ[cur].length - 1; i >= 0; i--) { const nx = G_ADJ[cur][i]; if (!seen.includes(nx) && !st.includes(nx)) st.push(nx); } }
+    }
+    setVisited(seen);
+  };
+  return (
+    <div>
+      <div className="db-controls">
+        <button className={`db-btn db-btn-sm ${mode === 'BFS' ? 'db-btn-grad' : ''}`} onClick={() => { setMode('BFS'); setVisited([]); }}>BFS (큐)</button>
+        <button className={`db-btn db-btn-sm ${mode === 'DFS' ? 'db-btn-grad' : ''}`} onClick={() => { setMode('DFS'); setVisited([]); }}>DFS (스택)</button>
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={run}>탐색 실행</button>
+        <button className="db-btn db-btn-sm" onClick={() => setVisited([])}>초기화</button>
+      </div>
+      <svg viewBox="0 0 260 155" style={{ width: '100%', background: '#fff', border: '1px solid #EFEFEF', borderRadius: 12 }}>
+        {G_EDGES.map(([a, b], i) => <line key={i} x1={G_NODES[a][0]} y1={G_NODES[a][1]} x2={G_NODES[b][0]} y2={G_NODES[b][1]} stroke="#DBDBDB" strokeWidth="2.5" />)}
+        {Object.entries(G_NODES).map(([k, [x, y]]) => {
+          const idx = visited.indexOf(k);
+          return (
+            <g key={k}>
+              <circle cx={x} cy={y} r="16" fill={idx >= 0 ? '#FDEFF4' : '#fff'} stroke={idx >= 0 ? '#cc2366' : '#8E8E8E'} strokeWidth="2.5" />
+              <text x={x} y={y + 5} textAnchor="middle" fontSize="12" fontWeight="900" fill="#262626">{k}</text>
+              {idx >= 0 && <text x={x + 20} y={y - 12} fontSize="10" fontWeight="800" fill="#cc2366">{idx + 1}</text>}
+            </g>
+          );
+        })}
+      </svg>
+      <p className="db-hint">{mode} 순서: <b>{visited.join(' → ') || '실행 버튼을 눌러보세요'}</b></p>
+    </div>
+  );
+}
+
+function SortViz() {
+  const [arr, setArr] = useState([38, 12, 51, 27, 64, 19]);
+  const [cmp, setCmp] = useState([]);
+  const [done, setDone] = useState([]);
+  const [running, setRunning] = useState(false);
+  const timers = useRef([]);
+  const stop = () => { timers.current.forEach(clearTimeout); timers.current = []; setRunning(false); };
+  const shuffle = () => { stop(); setArr([...arr].sort(() => Math.random() - 0.5)); setCmp([]); setDone([]); };
+  const bubble = () => {
+    stop(); setRunning(true);
+    const a = [...arr]; const steps = [];
+    for (let i = 0; i < a.length; i++) for (let j = 0; j < a.length - 1 - i; j++) { steps.push([j, j + 1, [...a], false]); if (a[j] > a[j + 1]) { [a[j], a[j + 1]] = [a[j + 1], a[j]]; steps.push([j, j + 1, [...a], true]); } }
+    steps.forEach(([x, y, snap, swapped], k) => {
+      timers.current.push(setTimeout(() => {
+        setArr(snap); setCmp([x, y]);
+        if (k === steps.length - 1) { setDone(snap.map((_, i) => i)); setCmp([]); setRunning(false); }
+      }, k * 320));
+    });
+  };
+  const max = Math.max(...arr, 1);
+  return (
+    <div>
+      <div className="db-controls">
+        <button className="db-btn db-btn-blue db-btn-sm" disabled={running} onClick={bubble}>{running ? '정렬 중…' : '버블 정렬 실행'}</button>
+        <button className="db-btn db-btn-sm" disabled={running} onClick={shuffle}>셔플</button>
+      </div>
+      <div className="db-bars">
+        {arr.map((v, i) => (
+          <div key={i} className={`db-bar ${done.includes(i) ? 'done' : cmp.includes(i) ? 'cmp' : ''}`} style={{ height: `${30 + (v / max) * 80}px` }}>{v}</div>
+        ))}
+      </div>
+      <p className="db-hint">이웃 비교→교환을 반복. 평균 O(n²)</p>
+    </div>
+  );
+}
+
+function HashViz() {
+  const [keys, setKeys] = useState(['apple', 'banana', 'grape']);
+  const [val, setVal] = useState('');
+  const buckets = useMemo(() => {
+    const b = [[], [], [], [], []];
+    keys.forEach((k) => { let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) % 5; b[h].push(k); });
+    return b;
+  }, [keys]);
+  return (
+    <div>
+      <div className="db-controls">
+        <input className="db-input" style={{ maxWidth: 160 }} value={val} onChange={(e) => setVal(e.target.value)} placeholder="키 입력" />
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={() => { if (val.trim()) { setKeys((s) => [...s, val.trim()]); setVal(''); } }}>삽입</button>
+        <button className="db-btn db-btn-sm" onClick={() => setKeys(['apple', 'banana', 'grape'])}>리셋</button>
+      </div>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {buckets.map((b, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span className="db-badge">bucket {i}</span>
+            {b.length === 0 && <span className="db-hint">— 비어 있음</span>}
+            {b.map((k) => <span key={k} className="db-node" style={{ height: 36 }}>{k}</span>)}
+            {b.length > 1 && <span className="db-badge-grad db-badge">충돌→체이닝</span>}
+          </div>
+        ))}
+      </div>
+      <p className="db-hint">h(key) = Σord(c) mod 5 · 평균 O(1)</p>
+    </div>
+  );
+}
+
+const VIZ_MAP = { array: ArrayViz, stack: StackViz, queue: QueueViz, linkedlist: LinkedListViz, tree: TreeViz, graph: GraphViz, sort: SortViz, hash: HashViz };
+
+function ArrayViz() {
+  const [arr, setArr] = useState([10, 20, 30, 40]);
+  const [idx, setIdx] = useState('2');
+  const [val, setVal] = useState('');
+  const [msg, setMsg] = useState('arr[i] 접근 O(1) — 인덱스를 눌러보세요');
+  const [hi, setHi] = useState(2);
+  const read = (i) => { setHi(i); setMsg(`arr[${i}] = ${arr[i]} (O(1) 직접 접근)`); };
+  const insert = () => {
+    const i = Math.max(0, Math.min(arr.length, parseInt(idx, 10) || 0));
+    const v = val.trim() === '' ? Math.floor(Math.random() * 90) + 10 : val.trim();
+    setArr((s) => [...s.slice(0, i), v, ...s.slice(i)]); setMsg(`insert(${i}, ${v}) — 뒤 원소 밀기 O(n)`);
+  };
+  const remove = () => {
+    const i = Math.max(0, Math.min(arr.length - 1, parseInt(idx, 10) || 0));
+    if (!arr.length) return;
+    setArr((s) => s.filter((_, k) => k !== i)); setMsg(`delete(${i}) — 뒤 원소 당기기 O(n)`);
+  };
+  return (
+    <div>
+      <div className="db-controls">
+        <input className="db-input" style={{ maxWidth: 90 }} value={idx} onChange={(e) => setIdx(e.target.value)} placeholder="인덱스" inputMode="numeric" />
+        <input className="db-input" style={{ maxWidth: 120 }} value={val} onChange={(e) => setVal(e.target.value)} placeholder="값(랜덤가능)" />
+        <button className="db-btn db-btn-blue db-btn-sm" onClick={insert}>삽입</button>
+        <button className="db-btn db-btn-sm" onClick={remove}>삭제</button>
+        <button className="db-btn db-btn-sm" onClick={() => setArr([10, 20, 30, 40])}>리셋</button>
+      </div>
+      <div className="db-viz">
+        {arr.map((v, i) => (
+          <button key={`${i}-${v}`} className={`db-node ${i === hi ? 'top' : ''}`} style={{ flexDirection: 'column', height: 58 }} onClick={() => read(i)}>
+            <span>{String(v)}</span><span style={{ fontSize: 10, color: '#8E8E8E' }}>[{i}]</span>
+          </button>
+        ))}
+        {!arr.length && <div className="db-empty">빈 배열</div>}
+      </div>
+      <p className="db-hint">{msg}</p>
+    </div>
+  );
+}
+
+
+window.VIZ_MAP = VIZ_MAP;
+/* 3. QuizCard */
+// 인스타 스타일 Quiz 문제 카드 + 결과 제출 (Vite 모듈 버전)
+
+function QuizCard({ unit, solved, onSolve }) {
+  const [picked, setPicked] = useState(null);
+  const done = picked !== null;
+  const correct = done && picked === unit.quiz.answer;
+  const choose = (i) => {
+    if (done) return;
+    setPicked(i);
+    if (i === unit.quiz.answer) onSolve?.(unit.id);
+  };
+  return (
+    <div className="db-lab" style={{ borderStyle: 'solid' }}>
+      <span className="db-lab-title">● MINI QUIZ — {solved ? '해결됨 ★' : '풀어보기'}</span>
+      <div><b style={{ fontSize: 15 }}>{unit.quiz.q}</b></div>
+      {unit.quiz.options.map((o, j) => {
+        let cls = 'db-quiz-opt';
+        if (done) { if (j === unit.quiz.answer) cls += ' correct'; else if (j === picked) cls += ' wrong'; }
+        return (
+          <button key={j} className={cls} disabled={done} onClick={() => choose(j)}>
+            <span className="letter">{'ABCD'[j] || j + 1}</span>{o}
+          </button>
+        );
+      })}
+      {done && (
+        <div className="db-explain">
+          {correct ? '정답! 🎉 ' : '아쉬워요. 정답은 ' + 'ABCD'[unit.quiz.answer] + '번. '}{unit.quiz.explain}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+window.QuizCard = QuizCard;
+/* 4a. ui */
+// 공유 아이콘 (Vite 모듈 / build 번들 공용 원본)
+
+function DbIcon({ name, size = 18 }) {
+  const c = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const P = {
+    cal: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></>,
+    alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7v6M12 16.5v.5" /></>,
+    swap: <><path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="m17 12 4 4-4 4" /><path d="M21 16H7" /></>,
+    flask: <><path d="M9 3h6" /><path d="M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3" /></>,
+    users: <><circle cx="9" cy="8" r="3.2" /><path d="M3 20c.6-3.2 2.8-5 6-5s5.4 1.8 6 5" /><circle cx="17" cy="9" r="2.6" /><path d="M16 15.2c2.6.3 4.4 1.9 5 4.8" /></>,
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>,
+    chart: <><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" /></>,
+    clip: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4a3 3 0 0 1 6 0" /><path d="M9 11h6M9 15h6" /></>,
+    wrench: <path d="M14.5 6.5a4 4 0 0 0-5.6 5.1L3 17.5V21h3.5l5.9-5.9a4 4 0 0 0 5.1-5.6l-2.8 2.8-2.4-2.4 2.2-3.4Z" />,
+    key: <><circle cx="8" cy="15" r="4" /><path d="m11 12 9-9" /><path d="m17 4 3 3M14 7l3 3" /></>,
+    slides: <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8" /></>,
+    book: <><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z" /><path d="M4 19a2 2 0 0 0 2 2h13" /></>,
+    star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />,
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
+    heart: <path d="M20.8 8.6c0 5.5-8.8 10.4-8.8 10.4S3.2 14.1 3.2 8.6A4.6 4.6 0 0 1 12 6.2a4.6 4.6 0 0 1 8.8 2.4Z" />,
+    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
+    print: <><path d="M7 8V3h10v5" /><rect x="3" y="8" width="18" height="9" rx="2" /><path d="M7 14h10v7H7z" /></>,
+    down: <><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
+    refresh: <><path d="M20 11a8 8 0 0 0-14.7-4L3 10" /><path d="M3 5v5h5" /></>,
+    cloud: <><path d="M7 18a4.5 4.5 0 1 1 .8-8.9A5.5 5.5 0 0 1 18.6 10H19a3.5 3.5 0 0 1 0 7H7Z" /></>,
+    save: <><path d="M5 3h11l3 3v15H5z" /><path d="M8 3v5h7V3" /><rect x="8" y="13" width="8" height="8" /></>,
+    x: <><path d="M6 6l12 12M18 6 6 18" /></>,
+    undo: <><path d="M8 5 3 10l5 5" /><path d="M3 10h11a6 6 0 0 1 0 12h-3" /></>,
+    redo: <><path d="m16 5 5 5-5 5" /><path d="M21 10H10a6 6 0 0 0 0 12h3" /></>,
+    user: <><circle cx="12" cy="8" r="3.5" /><path d="M4.5 20c.7-3.4 3.1-5.2 7.5-5.2s6.8 1.8 7.5 5.2" /></>,
+    lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
+    check: <path d="m5 12 4 4L19 6" />,
+    home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9" /><path d="M9 20v-6h6v6" /></>,
+  };
+  return <svg {...c}>{P[name] || P.grid}</svg>;
+}
+
+window.DbIcon = DbIcon;
+/* 4b. TopHeader */
+// 상단 헤더: 로고 + 카테고리 탭 + 우측 액션 (스크린샷 1:1)
+
+function TopHeader({ brand, year, cat, setCat, cats, userName, onRefresh, onPull, onSave, onOpenSettings, saving }) {
+  return (
+    <header className="db-header">
+      <div className="db-header-in">
+        <div className="db-brand">
+          <div className="db-brand-mark">🧱</div>
+          <div>
+            <b>{brand}<span className="db-year">{year}</span></b>
+            <small>자료구조 학습 · 포트폴리오 통합 포털</small>
+          </div>
+        </div>
+        <nav className="db-cat" aria-label="최상단 카테고리">
+          {cats.map((c) => (
+            <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </nav>
+        <div className="db-head-actions">
+          <button className="db-admin-pill" title="현재 사용자">
+            <DbIcon name="user" size={15} /><span className="nm">{userName}</span><span>▾</span>
+          </button>
+          <button className="db-btn db-btn-sm" onClick={onRefresh} title="Sheets에서 새로고침">
+            <DbIcon name="refresh" size={15} /> 새로고침
+          </button>
+          <button className="db-btn db-btn-sm" onClick={onPull} title="학습지/게임 설정 불러오기">
+            <DbIcon name="cloud" size={15} /> 불러오기
+          </button>
+          <button className="db-btn db-btn-blue db-btn-sm" onClick={onSave} disabled={!!saving} title="현재 작업 저장">
+            <DbIcon name="save" size={15} /> {saving ? '저장 중…' : '작업 저장'}
+          </button>
+          <button className="db-btn db-btn-sm" onClick={onOpenSettings} title="시스템 도구 및 설정">···</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+window.TopHeader = TopHeader;
+/* 4c. SubTabs */
+// 서브 탭: 아이콘 가로 버튼 (스크린샷: 시간표/결강보강/맞교환/테스트/… → 단원 탭으로 매핑)
+
+function SubTabs({ tabs, active, onChange }) {
+  return (
+    <nav className="db-subtabs" role="tablist" aria-label="단원 및 기능 선택">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          role="tab"
+          aria-selected={active === t.id}
+          className={`db-subtab ${active === t.id ? 'on' : ''} ${t.done ? 'done' : ''}`}
+          onClick={() => onChange(t.id)}
+        >
+          <span className="dot" />
+          <span className="ico">{t.icon || <DbIcon name={t.iconName || 'grid'} size={16} />}</span>
+          {t.label}
+          {t.badge && <small>{t.badge}</small>}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+window.SubTabs = SubTabs;
+/* 4d. UnitCards */
+// 대단원 카드 그리드 (2x2): 카드 안 5단계 타일 (개념/코드/실습/퀴즈/게임)
+
+const STEPS = ['개념', '코드', '실습', '퀴즈', '게임'];
+
+function UnitCards({ units, solved, gamePlayed, selectedId, onSelect }) {
+  return (
+    <div className="db-grid">
+      {units.map((u) => {
+        const done = !!solved[u.id];
+        const played = !!(gamePlayed && gamePlayed[u.id]);
+        const sel = selectedId === u.id;
+        const tileCls = (s) => `db-tile${s === '퀴즈' && done ? ' good' : s === '게임' && played ? ' hit' : ''}`;
+        return (
+          <button key={u.id} className={`db-card${sel ? ' sel' : ''}`} onClick={() => onSelect(u.id)}>
+            <div className="db-card-head">
+              <span className="ico">{u.icon}</span>
+              <span><b>{u.label}</b><small>{u.handle}</small></span>
+              <span className={`db-pill${done ? ' done' : ''}`}>{done ? '★ 해결' : `5단계 중 ${played ? 3 : done ? 5 : 0}/5`}</span>
+            </div>
+            <div className="db-days">
+              {STEPS.map((s) => (
+                <div key={s} className="db-day"><span>{s}</span><span className={tileCls(s)}>{s === '퀴즈' ? (done ? '정답' : '도전') : s}</span></div>
+              ))}
+            </div>
+            <ul className="db-points">{u.points.slice(0, 2).map((p) => <li key={p}>{p}</li>)}</ul>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+window.UnitCards = UnitCards;
+/* 4e. SettingsModal */
+// 설정 모달: 테마/서체/Undo-Redo/다운로드 (스크린샷 2:1)
+
+const THEMES = [
+  { id: 'pure-black', label: 'Pure Black' },
+  { id: 'apple-light', label: 'Apple Light' },
+  { id: 'obsidian', label: 'X.AI Obsidian' },
+];
+
+function SettingsModal({ open, onClose, theme, setTheme, font, setFont, onUndo, onRedo, canUndo, canRedo, onPrintPlan, onDownloadHtml, onDownloadAppPy, stamp }) {
+  if (!open) return null;
+  return (
+    <div className="db-backdrop" onClick={onClose}>
+      <div className="db-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="시스템 도구 및 설정">
+        <div className="db-modal-head"><b>시스템 도구 및 설정</b><button className="db-modal-x" onClick={onClose} aria-label="닫기">×</button></div>
+        <div className="db-modal-body">
+          <div>
+            <h3>🎨 화면 디자인 테마 &amp; 글꼴</h3>
+            <p className="db-hint">테마 스타일</p>
+            <div className="db-theme-row">
+              {THEMES.map((t) => (
+                <button key={t.id} className={`db-theme-opt${theme === t.id ? ' on' : ''}`} onClick={() => setTheme(t.id)}>{t.label}</button>
+              ))}
+            </div>
+            <p className="db-hint">서체(Font)</p>
+            <select className="db-select" value={font} onChange={(e) => setFont(e.target.value)}>
+              <option value="pretendard">Pretendard (추천 · 최적 가독성)</option>
+              <option value="system">System UI (시스템 기본)</option>
+            </select>
+          </div>
+          <div>
+            <h3>작업 기록 되돌리기 (Undo / Redo) <small>최대 10단계 히스토리</small></h3>
+            <div className="db-row">
+              <button className="db-btn" disabled={!canUndo} onClick={onUndo}><DbIcon name="undo" size={15} /> Undo (실행 취소)</button>
+              <button className="db-btn" disabled={!canRedo} onClick={onRedo}><DbIcon name="redo" size={15} /> Redo (다시 실행)</button>
+            </div>
+          </div>
+          <div>
+            <h3>공문서 출력 및 내역서 다운로드</h3>
+            <button className="db-btn" style={{ width: '100%' }} onClick={onPrintPlan}><DbIcon name="print" size={16} /> 학습 계획서 인쇄 (A4)</button>
+            <div className="db-dl">
+              <b style={{ fontSize: 13.5 }}>전체 일일 내역서 다운로드 <span className="db-badge" style={{ float: 'right' }}>{stamp}</span></b>
+              <button className="db-btn db-btn-blue" style={{ width: '100%' }} onClick={onDownloadHtml}><DbIcon name="down" size={16} /> 일일 내역서 (HTML) 다운로드</button>
+            </div>
+            <div className="db-dl">
+              <b style={{ fontSize: 13.5 }}>📄 파이썬 소스코드 (app.py) <span className="db-badge hot" style={{ float: 'right' }}>Streamlit</span></b>
+              <p>백엔드 이벤트 라우팅이 포함된 완전한 단일 파이썬 파일입니다.</p>
+              <button className="db-btn db-btn-green" style={{ width: '100%' }} onClick={onDownloadAppPy}><DbIcon name="down" size={16} /> app.py 파일 다운로드</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.SettingsModal = SettingsModal;
+/* 5. shim */
+/* Streamlit Custom Component bridge (global, single definition) */
+window.__streamlitArgs = window.__streamlitArgs || { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null, worksheet: null, uploadResult: null, games: null, ds: null };
+const Streamlit = {
+  setFrameHeight: function(h) {
+    var s = Math.max(640, Math.ceil(Number(h) || 640));
+    try { window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setFrameHeight", height: s }, "*"); } catch (e) {}
+  },
+  setComponentValue: function(v) {
+    try { window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setComponentValue", value: v }, "*"); } catch (e) {}
+  }
+};
+window.addEventListener("message", function(event) {
+  if (!event.data || event.data.type !== "streamlit:render") return;
+  var next = (event.data.args && (event.data.args.args || event.data.args)) || window.__streamlitArgs;
+  window.__streamlitArgs = next;
+  window.dispatchEvent(new CustomEvent("dsArgs", { detail: next }));
+});
+
+/* 6. App */
+// DS BLACKBOARD — Pure Black SaaS 대시보드 (Vite 개발용)
+// 실행: cd frontend && npm install && npm run dev   (3001 포트)
+// 배포: npm run build → frontend/build 를 Streamlit이 서빙 (app.py _RELEASE 블록 참조)
+
+const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null, worksheet: null, uploadResult: null, games: null, ds: null };
+
+function makeEventId(p = 'event') {
+  try { if (globalThis.crypto?.randomUUID) return `${p}-${globalThis.crypto.randomUUID()}`; } catch (_) {}
+  return `${p}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+function emit(action, payload = {}) {
+  Streamlit.setComponentValue({ action, eventId: makeEventId(action), ...payload });
+}
+function downloadBlob(name, text, mime = 'text/html;charset=utf-8') {
+  const blob = new Blob([text], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ================= 로그인 ================= */
+function Login({ flash }) {
+  const [sid, setSid] = useState('');
+  const [pw, setPw] = useState('');
+  const [pending, setPending] = useState('');
+  useEffect(() => { if (flash) setPending(''); }, [flash?.type, flash?.text]);
+  const goS = (e) => { e?.preventDefault?.(); if (!sid.trim() || pending) return; setPending('s'); emit('student_login', { studentId: sid.trim() }); };
+  const goT = (e) => { e?.preventDefault?.(); if (!pw || pending) return; setPending('t'); emit('teacher_login', { password: pw }); };
+  return (
+    <div className="db-app" data-theme="pure-black">
+      <TopHeader brand="DS Blackboard" year="2026학년도" cat="learn" setCat={() => {}} cats={[{ id: 'learn', icon: '📚', label: '학습 업무' }, { id: 'admin', icon: '🏫', label: '교무 행정' }]} userName="게스트" onRefresh={() => {}} onPull={() => {}} onSave={() => {}} onOpenSettings={() => {}} />
+      <main className="db-shell">
+        {flash && <div className={`db-toast ${flash.type || ''}`}>{flash.text}</div>}
+        <div className="db-auth-grid">
+          <section className="db-section db-hero">
+            <span className="db-badge hot">8 UNITS · PURE BLACK</span>
+            <h1>피드가 아니라 <i>대시보드</i>로 배우는 자료구조.</h1>
+            <p className="db-hint">단원 카드를 고르고, 타일을 눌러 개념→코드→실습→퀴즈→게임 5단계를 밟으세요. 퀴즈 정답과 게임 점수는 Sheets에 실시간 저장됩니다.</p>
+            <div className="db-subtabs">{DS_UNITS.slice(0, 6).map((u) => <span key={u.id} className="db-subtab"><span className="ico">{u.icon}</span>{u.label}</span>)}</div>
+          </section>
+          <section className="db-section">
+            <div><span className="db-badge">STUDENT</span><h2 style={{ margin: '6px 0' }}>학번으로 시작</h2></div>
+            <form onSubmit={goS} className="db-row">
+              <input className="db-input" value={sid} onChange={(e) => setSid(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))} placeholder="학번 예) 1701" inputMode="numeric" />
+              <button className="db-btn db-btn-blue" type="submit" disabled={!sid.trim() || pending !== ''}>{pending === 's' ? '확인 중…' : '학생 로그인'}</button>
+            </form>
+            <div><span className="db-badge">TEACHER</span><h2 style={{ margin: '6px 0' }}>교사 관리자</h2></div>
+            <form onSubmit={goT} className="db-row">
+              <input className="db-input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="관리자 비밀번호" />
+              <button className="db-btn db-btn-green" type="submit" disabled={!pw || pending !== ''}>{pending === 't' ? '확인 중…' : '교사 로그인'}</button>
+            </form>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/* ================= 단원 상세 (개념+코드+실습+퀴즈) ================= */
+function UnitDetail({ unit, solved, onSolve, compact }) {
+  const Viz = VIZ_MAP[unit.id];
+  return (
+    <section className="db-section">
+      <div className="db-card-head">
+        <span className="ico" style={{ width: 44, height: 44, fontSize: 22 }}>{unit.icon}</span>
+        <span><h2>{unit.title}</h2><p className="desc">{unit.handle}</p></span>
+        <span className={`db-pill${solved ? ' done' : ' hot'}`}>{solved ? '★ 해결됨' : '학습 중'}</span>
+      </div>
+      <p className="desc" style={{ color: 'var(--db-text)', fontSize: 14.5 }}>{unit.desc}</p>
+      <ul className="db-points">{unit.points.map((p) => <li key={p}>{p}</li>)}</ul>
+      <pre className="db-code">{unit.code}</pre>
+      {Viz && <div className="db-lab"><span className="db-lab-title">● INTERACTIVE LAB — 직접 조작</span><Viz /></div>}
+      {!compact && <QuizCard unit={unit} solved={!!solved} onSolve={onSolve} />}
+    </section>
+  );
+}
+
+/* ================= 미니게임 (기존 기능 유지) ================= */
+const GAME_LABEL = { quiz: '4지선다 퀴즈', memory: '카드 맞추기', embed: '외부 게임' };
+function gmUid(p = 'g') { return `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
+function gmShuffle(a) { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[x[i], x[j]] = [x[j], x[i]]; } return x; }
+function QuizPlayer({ config, onFinish }) {
+  const qs = config.content?.questions || [];
+  const [idx, setIdx] = useState(0); const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0); const [done, setDone] = useState(false);
+  const [t0] = useState(Date.now()); const timers = useRef([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  if (!qs.length) return <div className="db-empty">등록된 문제가 없습니다.</div>;
+  if (done) return <div className="db-section"><div className="db-like-pop">♥</div><h2 style={{ textAlign: 'center' }}>{score}/{qs.length}점 저장 완료</h2></div>;
+  const q = qs[idx];
+  const choose = (i) => {
+    if (picked !== null) return; setPicked(i);
+    const ns = score + (i === q.answer ? 1 : 0); if (i === q.answer) setScore(ns);
+    timers.current.push(setTimeout(() => {
+      if (idx + 1 >= qs.length) { setDone(true); onFinish({ score: ns, maxScore: qs.length, durationSec: Math.round((Date.now() - t0) / 1000), detail: { correct: ns } }); }
+      else { setIdx(idx + 1); setPicked(null); }
+    }, 450));
+  };
+  return (
+    <section className="db-section">
+      <div className="db-progress"><i style={{ width: `${Math.round((idx / qs.length) * 100)}%` }} /></div>
+      <h2 style={{ fontSize: 16 }}>{q.q}</h2>
+      {(q.options || []).map((o, j) => {
+        let cls = 'db-quiz-opt';
+        if (picked !== null) { if (j === q.answer) cls += ' correct'; else if (j === picked) cls += ' wrong'; }
+        return <button key={j} className={cls} onClick={() => choose(j)}><span className="letter">{'ABCD'[j] || j + 1}</span>{o}</button>;
+      })}
+    </section>
+  );
+}
+function MemoryPlayer({ config, onFinish }) {
+  const pairs = config.content?.pairs || [];
+  const deck = useMemo(() => gmShuffle(pairs.flatMap((p, i) => [{ key: i, text: p.a }, { key: i, text: p.b }])), [config.updatedAt, pairs.length]);
+  const [open, setOpen] = useState([]); const [matched, setMatched] = useState([]);
+  const [moves, setMoves] = useState(0); const [lock, setLock] = useState(false);
+  const [t0] = useState(Date.now()); const [done, setDone] = useState(false);
+  const timers = useRef([]); useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  if (!pairs.length) return <div className="db-empty">등록된 카드가 없습니다.</div>;
+  if (done) return <div className="db-section"><div className="db-like-pop">♥</div><h2 style={{ textAlign: 'center' }}>{pairs.length}쌍 완성 · 저장 완료</h2></div>;
+  const flip = (i) => {
+    if (lock || open.includes(i) || matched.includes(deck[i].key)) return;
+    const no = [...open, i]; setOpen(no);
+    if (no.length === 2) {
+      setMoves(moves + 1);
+      if (deck[no[0]].key === deck[no[1]].key) {
+        const nm = [...matched, deck[no[0]].key]; setMatched(nm); setOpen([]);
+        if (nm.length === pairs.length) { setDone(true); onFinish({ score: pairs.length, maxScore: pairs.length, durationSec: Math.round((Date.now() - t0) / 1000), detail: { moves: moves + 1 } }); }
+      } else { setLock(true); timers.current.push(setTimeout(() => { setOpen([]); setLock(false); }, 650)); }
+    }
+  };
+  return (
+    <section className="db-section">
+      <div className="db-progress"><i style={{ width: `${Math.round((matched.length / Math.max(1, pairs.length)) * 100)}%` }} /></div>
+      <div className="db-mem-grid">{deck.map((c, i) => {
+        const face = open.includes(i) || matched.includes(c.key);
+        return <button key={i} className={`db-mem-card${face ? ' face' : ''}${matched.includes(c.key) ? ' matched' : ''}`} onClick={() => flip(i)}>{face ? c.text : '?'}</button>;
+      })}</div>
+    </section>
+  );
+}
+function GamePlayer({ config, onFinish }) {
+  if (config.type === 'memory') return <MemoryPlayer config={config} onFinish={onFinish} />;
+  if (config.type === 'embed') {
+    const url = config.content?.url || '';
+    return <section className="db-section">{url ? <iframe title={config.title} src={url} className="db-frame" sandbox="allow-scripts allow-same-origin allow-forms" /> : <div className="db-empty">등록된 게임 URL이 없습니다.</div>}
+      <button className="db-btn db-btn-green" onClick={() => onFinish({ score: 100, maxScore: 100, durationSec: 0, detail: { via: 'manual' } })}>게임 완료 보고하기</button></section>;
+  }
+  return <QuizPlayer config={config} onFinish={onFinish} />;
+}
+function StudentGames({ games, myRecords }) {
+  const list = games || [];
+  const [week, setWeek] = useState(list[0]?.week || 1);
+  const [playing, setPlaying] = useState(false); const [last, setLast] = useState(null);
+  useEffect(() => { setPlaying(false); setLast(null); }, [week]);
+  if (!list.length) return <section className="db-section"><div className="db-empty">플레이 가능한 주차 게임이 없습니다.</div></section>;
+  const cfg = list.find((g) => Number(g.week) === Number(week)) || list[0];
+  const finish = (res) => {
+    emit('student_game_submit', { week: Number(cfg.week), gameType: cfg.type, score: res.score, maxScore: res.maxScore, durationSec: res.durationSec || 0, detail: res.detail || {}, recordId: gmUid('game') });
+    setLast(res); setPlaying(false);
+  };
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <div className="db-subtabs">{list.map((g) => (
+        <button key={g.week} className={`db-subtab${Number(week) === Number(g.week) ? ' on' : ''}`} onClick={() => setWeek(Number(g.week))}>
+          <span className="dot" />W{g.week} · {GAME_LABEL[g.type] || g.type}
+        </button>))}</div>
+      <section className="db-section">
+        <div className="db-card-head"><span><h2>{cfg.title}</h2><p className="desc">{cfg.desc}</p></span></div>
+        {!playing && <button className="db-btn db-btn-green" onClick={() => { setLast(null); setPlaying(true); }}>게임 시작</button>}
+      </section>
+      {last && <section className="db-section"><div className="db-like-pop">♥</div><h2 style={{ textAlign: 'center' }}>{last.score}/{last.maxScore}점 저장 완료</h2></section>}
+      {playing && <GamePlayer key={`${cfg.week}-${cfg.updatedAt}`} config={cfg} onFinish={finish} />}
+    </div>
+  );
+}
+
+/* ================= 학생 셸 ================= */
+const LEARN_TABS = () => [
+  ...DS_UNITS.map((u) => ({ id: u.id, icon: u.icon, label: u.label })),
+  { id: '__game', icon: '⭐', label: '미니게임' },
+  { id: '__my', icon: '📝', label: '나의 기록' },
+];
+
+function StudentApp({ args, theme, setTheme, font, setFont }) {
+  const student = args.student || {};
+  const [tab, setTab] = useState(DS_UNITS[0].id);
+  const [query, setQuery] = useState('');
+  const [seg, setSeg] = useState('all');
+  const [settings, setSettings] = useState(false);
+  const [solved, setSolved] = useState(() => { const o = {}; (args.ds?.solved || []).forEach((u) => { o[u] = true; }); return o; });
+  const [sel, setSel] = useState(Number(args.weeks?.[0]?.주차 || 1));
+  const [content, setContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [localToast, setLocalToast] = useState(null);
+  const undo = useRef([]); const redo = useRef([]); const subId = useRef(null);
+  const rec = (args.portfolio || []).find((r) => Number(r.주차) === Number(sel));
+
+  useEffect(() => { setContent(rec?.제출내용 || ''); subId.current = null; setSubmitting(false); undo.current = []; redo.current = []; }, [sel, rec?.제출내용]);
+  useEffect(() => {
+    if (args.result?.submissionId) { subId.current = null; setSubmitting(false); }
+    else if (args.flash) setSubmitting(false);
+    if (args.result?.solvedUnit) setSolved((s) => ({ ...s, [args.result.solvedUnit]: true }));
+    if (args.result?.appPy) { downloadBlob('app.py', args.result.appPy, 'text/x-python;charset=utf-8'); }
+  }, [args.result, args.flash]);
+
+  const onDsSolve = (unitId, recordId) => { setSolved((s) => ({ ...s, [unitId]: true })); emit('ds_quiz_submit', { unitId, score: 10, maxScore: 10, recordId }); };
+  const submit = () => {
+    if (submitting || !content.trim()) return; setSubmitting(true);
+    undo.current.push(content); if (undo.current.length > 10) undo.current.shift(); redo.current = [];
+    if (!subId.current) subId.current = makeEventId('submission');
+    emit('student_submit', { week: Number(sel), content, submissionId: subId.current });
+  };
+  const doUndo = () => { if (!undo.current.length) return; redo.current.push(content); const v = undo.current.pop(); setContent(v); setLocalToast('Undo: 이전 입력으로 되돌렸습니다.'); };
+  const doRedo = () => { if (!redo.current.length) return; undo.current.push(content); setContent(redo.current.pop()); };
+  const onSave = () => {
+    if ((tab === '__my') && content.trim()) submit();
+    else { setLocalToast('저장할 포트폴리오 입력이 없습니다. 나의 기록 탭에서 작성하세요.'); setTab('__my'); }
+  };
+  const filtered = useMemo(() => {
+    let u = DS_UNITS;
+    const q = query.trim().toLowerCase();
+    if (q) u = u.filter((x) => (x.label + x.title + x.desc).toLowerCase().includes(q));
+    if (seg === 'todo') u = u.filter((x) => !solved[x.id]);
+    if (seg === 'done') u = u.filter((x) => solved[x.id]);
+    return u;
+  }, [query, seg, solved]);
+  const active = DS_UNITS.find((u) => u.id === tab);
+  const doneCount = Object.keys(solved).length;
+  const tabs = LEARN_TABS().map((t) => ({ ...t, done: !!solved[t.id] }));
+
+  return (
+    <div className="db-app" data-theme={theme} data-font={font}>
+      <TopHeader brand="DS Blackboard" year="2026학년도" cat="learn" setCat={() => {}} cats={[{ id: 'learn', icon: '📚', label: '학습 업무' }, { id: 'admin', icon: '🏫', label: '교무 행정' }]} userName={`${student.이름 || '학생'}`} onRefresh={() => emit('teacher_refresh')} onPull={() => emit('teacher_refresh')} onSave={onSave} onOpenSettings={() => setSettings(true)} saving={submitting} />
+      <main className="db-shell">
+        {args.flash && <div className={`db-toast ${args.flash.type || ''}`}>{args.flash.text}</div>}
+        {localToast && <div className="db-toast">{localToast}</div>}
+        <SubTabs tabs={tabs} active={tab} onChange={setTab} />
+        <div className="db-filterbar">
+          <div className="db-seg">
+            {[['all', '전체 단원'], ['todo', '미해결'], ['done', '해결됨']].map(([k, l]) => <button key={k} className={seg === k ? 'on' : ''} onClick={() => setSeg(k)}>{l}</button>)}
+          </div>
+          <div className="db-seg"><button className="on">🧱 단원별 주간</button><button onClick={() => setTab('__my')}>📝 나의 기록</button></div>
+          <div className="db-search"><DbIcon name="search" size={15} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="단원 검색 (스택, 트리…)" /></div>
+          <button className="db-btn db-btn-sm" onClick={() => window.print()}><DbIcon name="print" size={15} /> 인쇄</button>
+        </div>
+        <div className="db-legend"><b>표시 범례:</b>
+          <span className="k"><span className="sw" style={{ background: '#5B6272' }} /> 개념 학습</span>
+          <span className="k"><span className="sw" style={{ background: '#00D1FF' }} /> 인터랙티브 실습</span>
+          <span className="k"><span className="sw" style={{ background: '#00E676' }} /> 퀴즈 해결</span>
+          <span className="k"><span className="sw" style={{ background: '#FFB020' }} /> 게임 기록</span>
+        </div>
+
+        {active && (
+          <section className="db-section">
+            <div><h2>단원별 학습 현황 <span className="db-badge hot">{doneCount}/{DS_UNITS.length} 해결</span></h2>
+              <p className="desc">카드를 눌러 5단계(개념·코드·실습·퀴즈·게임)를 밟으세요. 아래 상세 패널에서 직접 조작합니다.</p></div>
+            <div className="db-progress"><i style={{ width: `${Math.round((doneCount / DS_UNITS.length) * 100)}%` }} /></div>
+            <UnitCards units={filtered} solved={solved} selectedId={active.id} onSelect={setTab} />
+          </section>
+        )}
+
+        {active && <UnitDetail unit={active} solved={!!solved[active.id]} onSolve={(id) => onDsSolve(id, makeEventId('quiz'))} />}
+
+        {tab === '__game' && (
+          <section className="db-section"><div><h2>주차별 미니게임</h2><p className="desc">교사 공개 게임에 도전하면 최고·시도 기록이 저장됩니다.</p></div>
+            <StudentGames games={args.games?.active || []} myRecords={args.games?.records || []} /></section>
+        )}
+
+        {tab === '__my' && (
+          <section className="db-section">
+            <div><h2>나의 기록 — {sel}주차 포트폴리오</h2><p className="desc">제출 후 교사 평가(점수·피드백)가 표시됩니다.</p></div>
+            <div className="db-subtabs">{(args.weeks || []).map((w) => (
+              <button key={w.주차} className={`db-subtab${Number(sel) === Number(w.주차) ? ' on' : ''}`} onClick={() => setSel(Number(w.주차))}>
+                <span className="dot" />{w.주차}주차</button>))}</div>
+            <p className="desc">{(args.weeks || []).find((w) => Number(w.주차) === Number(sel))?.활동지질문 || '이번 주 배운 점을 기록하세요.'}</p>
+            <textarea className="db-textarea" style={{ minHeight: 200 }} value={content} onChange={(e) => setContent(e.target.value)} placeholder="배운 것 · 해본 것 · 어려웠던 점" />
+            <div className="db-row">
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="db-btn db-btn-sm" disabled={!undo.current.length && !content} onClick={doUndo}><DbIcon name="undo" size={14} /> Undo</button>
+                <button className="db-btn db-btn-sm" disabled={!redo.current.length} onClick={doRedo}><DbIcon name="redo" size={14} /> Redo</button>
+              </div>
+              <button className="db-btn db-btn-blue" disabled={submitting || !content.trim()} onClick={submit}>{submitting ? '저장 중…' : rec?.제출 ? '수정하여 제출' : '기록 제출'}</button>
+            </div>
+            {(args.portfolio || []).filter((r) => r.제출).length > 0 && (
+              <div><h3 style={{ fontSize: 14 }}>아카이브</h3>
+                {(args.portfolio || []).filter((r) => r.제출).map((r) => (
+                  <div key={r.주차} className="db-lab" style={{ marginTop: 8 }}><span className="db-badge">W{r.주차} · {r.점수 || '—'}점</span><p className="db-hint">{String(r.제출내용 || '').slice(0, 80)}</p></div>))}
+              </div>)}
+          </section>
+        )}
+      </main>
+      <SettingsModal open={settings} onClose={() => setSettings(false)} theme={theme} setTheme={setTheme} font={font} setFont={setFont}
+        onUndo={doUndo} onRedo={doRedo} canUndo={undo.current.length > 0} canRedo={redo.current.length > 0}
+        onPrintPlan={() => window.print()}
+        onDownloadHtml={() => downloadBlob('ds-내역서.html', `<html><head><meta charset="utf-8"><title>DS 내역서</title></head><body><h1>${student.이름 || ''} 학습 내역</h1><p>해결 ${doneCount}/${DS_UNITS.length}</p><ul>${Object.keys(solved).map((k) => `<li>${k}</li>`).join('')}</ul></body></html>`)}
+        onDownloadAppPy={() => emit('teacher_export_app')} stamp="2026-09-28" />
+    </div>
+  );
+}
+
+/* ================= 교사 셸 ================= */
+function TeacherDash({ dash, onStudent }) {
+  const max = Math.max(1, ...(dash.classStats || []).map((x) => Number(x.제출건수) || 0));
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <section className="db-section"><div><h2>학생 학습 현황</h2><p className="desc">포트폴리오·게임·DS 퀴즈를 한 곳에서 관리합니다.</p></div>
+        <div className="db-row" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+          {[['등록 학생', dash.totalStudents], ['제출 학생', dash.submittedStudents], ['평균 점수', dash.averageScore]].map(([k, v]) => (
+            <div key={k} className="db-lab" style={{ textAlign: 'center' }}><span className="db-hint">{k}</span><b style={{ fontSize: 24 }}>{v}</b></div>))}
+        </div></section>
+      <section className="db-section"><h2 style={{ fontSize: 15 }}>반별 활동량</h2>
+        {(dash.classStats || []).map((r, i) => (
+          <div key={i}><p className="db-hint">{r.학년}학년 {r.반}반 · {r.제출건수}건 · 평균 {r.평균점수}점</p>
+            <div className="db-progress"><i style={{ width: `${Math.max(4, (r.제출건수 / max) * 100)}%` }} /></div></div>))}
+        {!(dash.classStats || []).length && <div className="db-empty">제출 데이터 없음</div>}</section>
+      <section className="db-section"><h2 style={{ fontSize: 15 }}>최근 제출</h2>
+        {(dash.portfolio || []).slice(0, 6).map((r, i) => (
+          <button key={i} className="db-quiz-opt" onClick={() => onStudent(r.학번)}><span className="letter">{String(r.이름 || '?').slice(0, 1)}</span><span>{r.이름} · {r.주차}주차 — {String(r.제출내용 || '').slice(0, 40)}</span></button>))}
+      </section>
+    </div>
+  );
+}
+
+function TeacherApp({ args, theme, setTheme, font, setFont }) {
+  const dash = args.teacher || { students: [], portfolio: [], classStats: [] };
+  const [tab, setTab] = useState('dash');
+  const [settings, setSettings] = useState(false);
+  const [sid, setSid] = useState(''); const [week, setWeek] = useState(1);
+  const [score, setScore] = useState(0); const [fb, setFb] = useState('');
+  const found = (dash.portfolio || []).find((r) => String(r.학번) === String(sid) && Number(r.주차) === Number(week));
+  useEffect(() => { setScore(Number(found?.점수) || 0); setFb(found?.피드백 || ''); }, [found?.제출ID, sid, week]);
+  useEffect(() => { if (args.result?.appPy) downloadBlob('app.py', args.result.appPy, 'text/x-python;charset=utf-8'); }, [args.result]);
+
+  const tabs = [
+    { id: 'dash', icon: '📊', label: '통계' }, { id: 'ds', icon: '🧱', label: '단원' },
+    { id: 'game', icon: '⭐', label: '테스트' }, { id: 'ws', icon: '📝', label: '학습지' },
+    { id: 'eval', icon: '👥', label: '학생' }, { id: 'csv', icon: '📥', label: '내보내기' },
+  ];
+  const headers = { 학번: '학번', 이름: '이름', 학년: '학년', 반: '반' };
+  const csvHeaders = ['학번', '이름', '학년', '반', ...Array.from({ length: 17 }, (_, i) => `${i + 1}주차`), '총점'];
+  const csvRows = (() => {
+    const map = new Map();
+    (dash.students || []).forEach((s) => { if (s.학번) map.set(String(s.학번), { ...headers, 학번: String(s.학번), 이름: s.이름 || '', 학년: s.학년 || '', 반: s.반 || '' }); });
+    (dash.portfolio || []).forEach((r) => {
+      const id = String(r.학번); if (!map.has(id)) map.set(id, { 학번: id, 이름: r.이름 || '', 학년: r.학년 || '', 반: r.반 || '' });
+      const it = map.get(id); it[`${r.주차}주차`] = r.점수 || ''; it.총점 = (Number(it.총점) || 0) + (Number(r.점수) || 0);
+    });
+    return [csvHeaders, ...[...map.values()].map((row) => csvHeaders.map((h) => row[h] ?? ''))]
+      .map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(',')).join('\n');
+  })();
+
+  return (
+    <div className="db-app" data-theme={theme} data-font={font}>
+      <TopHeader brand="DS Blackboard" year="2026학년도" cat="admin" setCat={() => {}} cats={[{ id: 'learn', icon: '📚', label: '학습 업무' }, { id: 'admin', icon: '🏫', label: '교무 행정' }]} userName="관리자 (마스터)" onRefresh={() => emit('teacher_refresh')} onPull={() => emit('teacher_worksheet_load', { week: 1 })} onSave={() => emit('teacher_refresh')} onOpenSettings={() => setSettings(true)} />
+      <main className="db-shell">
+        {args.flash && <div className={`db-toast ${args.flash.type || ''}`}>{args.flash.text}</div>}
+        <SubTabs tabs={tabs} active={tab} onChange={setTab} />
+        {tab === 'dash' && <TeacherDash dash={dash} onStudent={(id) => { setSid(String(id)); setTab('eval'); }} />}
+        {tab === 'ds' && <section className="db-section"><div><h2>단원 미리보기</h2><p className="desc">학생 화면 그대로 검수합니다.</p></div>
+          <UnitCards units={DS_UNITS} solved={{}} selectedId={DS_UNITS[0].id} onSelect={() => {}} />
+          <UnitDetail unit={DS_UNITS[0]} solved={false} onSolve={() => {}} compact /></section>}
+        {tab === 'game' && (
+          <section className="db-section"><div><h2>주차별 게임 관리</h2><p className="desc">유형·제목·문제를 저장하면 학생에게 공개됩니다.</p></div>
+            <GameAdmin weeks={args.weeks || []} configs={args.games?.configs || []} records={args.games?.records || []} /></section>)}
+        {tab === 'ws' && (
+          <section className="db-section"><div><h2>주차별 학습지 관리</h2><p className="desc">제목·안내·문제를 Sheets에 저장합니다.</p></div>
+            <WsAdmin weeks={args.weeks || []} initial={args.worksheet} /></section>)}
+        {tab === 'eval' && (
+          <section className="db-section"><div><h2>학생 기록과 피드백</h2></div>
+            <div className="db-row">
+              <select className="db-select" value={sid} onChange={(e) => setSid(e.target.value)}>
+                <option value="">학생 선택</option>{(dash.students || []).map((s) => <option key={s.학번} value={s.학번}>{s.학번} · {s.이름}</option>)}
+              </select>
+              <select className="db-select" value={week} onChange={(e) => setWeek(Number(e.target.value))}>{Array.from({ length: 17 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}주차</option>)}</select>
+            </div>
+            <div className="db-lab">{found ? String(found.제출내용) : '제출 기록이 없습니다.'}</div>
+            <div className="db-row">
+              <input className="db-input" type="number" value={score} onChange={(e) => setScore(e.target.value)} placeholder="점수" />
+              <button className="db-btn db-btn-blue" onClick={() => emit('teacher_grade_save', { studentId: sid, week: Number(week), score: Number(score), feedback: fb })}>평가 저장</button>
+            </div>
+            <textarea className="db-textarea" value={fb} onChange={(e) => setFb(e.target.value)} placeholder="한 줄 피드백" /></section>)}
+        {tab === 'csv' && (
+          <section className="db-section"><div><h2>성적 CSV 내보내기</h2><p className="desc">1—17주차 점수·총점을 Excel용 CSV로 저장합니다.</p></div>
+            <a href={`data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csvRows)}`} download="ds_성적표.csv" className="db-btn db-btn-blue" style={{ textAlign: 'center' }}>CSV 다운로드</a></section>)}
+      </main>
+      <SettingsModal open={settings} onClose={() => setSettings(false)} theme={theme} setTheme={setTheme} font={font} setFont={setFont}
+        onUndo={() => {}} onRedo={() => {}} canUndo={false} canRedo={false}
+        onPrintPlan={() => window.print()}
+        onDownloadHtml={() => downloadBlob('ds-내역서.html', `<html><head><meta charset="utf-8"></head><body><h1>DS 전체 내역</h1><pre>${csvRows.slice(0, 2000)}</pre></body></html>`)}
+        onDownloadAppPy={() => emit('teacher_export_app')} stamp="2026-09-28" />
+    </div>
+  );
+}
+
+/* ---- 교사 게임/학습지 간이 어드민 (이벤트 규격은 기존과 동일) ---- */
+function GameAdmin({ weeks, configs, records }) {
+  const all = configs?.length ? configs : Array.from({ length: 17 }, (_, i) => ({ week: i + 1, enabled: false, type: 'quiz', title: `${i + 1}주차 미니게임`, desc: '', content: { questions: [] } }));
+  const [week, setWeek] = useState(1); const [gtype, setGtype] = useState('quiz');
+  const [title, setTitle] = useState(''); const [desc, setDesc] = useState('');
+  const [qs, setQs] = useState([]); const [url, setUrl] = useState('');
+  useEffect(() => {
+    const c = all.find((x) => Number(x.week) === Number(week)) || {};
+    setGtype(c.type || 'quiz'); setTitle(c.title || `${week}주차 미니게임`); setDesc(c.desc || '');
+    setQs(((c.content || {}).questions || []).map((q) => ({ q: q.q || '', options: [...(q.options || ['', '', '', ''])], answer: q.answer || 0 })));
+    setUrl((c.content || {}).url || '');
+  }, [week]);
+  const current = { week: Number(week), enabled: true, type: gtype, title, desc, content: gtype === 'quiz' ? { questions: qs } : { url: url.trim() } };
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div className="db-subtabs">{all.map((c) => (
+        <button key={c.week} className={`db-subtab${Number(week) === Number(c.week) ? ' on' : ''}`} onClick={() => setWeek(Number(c.week))}>
+          <span className="dot" />{c.week}주차</button>))}</div>
+      <div className="db-row">
+        <select className="db-select" value={gtype} onChange={(e) => setGtype(e.target.value)}>
+          <option value="quiz">4지선다 퀴즈</option><option value="memory">카드 맞추기</option><option value="embed">외부 게임</option>
+        </select>
+        <input className="db-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="게임 제목" />
+      </div>
+      <textarea className="db-textarea" style={{ minHeight: 70 }} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="학생 안내문" />
+      {gtype === 'quiz' && <>{qs.map((q, i) => (
+        <div key={i} className="db-lab"><input className="db-input" value={q.q} onChange={(e) => { const c = [...qs]; c[i] = { ...c[i], q: e.target.value }; setQs(c); }} placeholder={`문제 ${i + 1}`} />
+          {q.options.map((o, j) => <div key={j} style={{ display: 'grid', gridTemplateColumns: '24px 1fr', gap: 8, alignItems: 'center' }}>
+            <input type="radio" checked={Number(q.answer) === j} onChange={() => { const c = [...qs]; c[i] = { ...c[i], answer: j }; setQs(c); }} />
+            <input className="db-input" value={o} onChange={(e) => { const c = [...qs]; c[i] = { ...c[i], options: c[i].options.map((x, k) => (k === j ? e.target.value : x)) }; setQs(c); }} placeholder={`보기 ${'ABCD'[j]}`} />
+          </div>})}</div>)}
+        <button className="db-btn" onClick={() => setQs([...qs, { q: '', options: ['', '', '', ''], answer: 0 }])}>+ 문제 추가</button></>}
+      {gtype === 'embed' && <input className="db-input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />}
+      <div className="db-row">
+        <button className="db-btn" onClick={() => emit('teacher_game_toggle', { week: Number(week), enabled: false })}>비공개</button>
+        <button className="db-btn db-btn-blue" onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
+      </div>
+      <p className="db-hint">{week}주차 기록 {(records || []).filter((r) => Number(r.주차) === Number(week)).length}건</p>
+    </div>
+  );
+}
+function WsAdmin({ weeks, initial }) {
+  const [week, setWeek] = useState(1); const [title, setTitle] = useState(''); const [guide, setGuide] = useState('');
+  useEffect(() => { if (initial) { setWeek(initial.week || 1); setTitle(initial.title || ''); setGuide(initial.guide || ''); } }, [initial?.week, initial?.updatedAt]);
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div className="db-row">
+        <select className="db-select" value={week} onChange={(e) => { const w = Number(e.target.value); setWeek(w); emit('teacher_worksheet_load', { week: w }); }}>
+          {Array.from({ length: 17 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}주차</option>)}
+        </select>
+        <button className="db-btn db-btn-blue" onClick={() => emit('teacher_worksheet_save', { worksheet: { week, title, guide, questions: initial?.questions || [], published: true } })}>Sheets에 저장</button>
+      </div>
+      <input className="db-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="학습지 제목" />
+      <textarea className="db-textarea" value={guide} onChange={(e) => setGuide(e.target.value)} placeholder="안내문" />
+      <p className="db-hint">문제 편집(4유형)은 기존 Worksheet 에디터와 동일 규격으로 저장됩니다.</p>
+    </div>
+  );
+}
+
+/* ================= 루트 ================= */
+function App(props) {
+  const args = { ...DEFAULT_ARGS, ...(props.args || {}) };
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('db-theme') || 'pure-black'; } catch (_) { return 'pure-black'; } });
+  const [font, setFont] = useState('pretendard');
+  useEffect(() => { try { localStorage.setItem('db-theme', theme); } catch (_) {} }, [theme]);
+  useEffect(() => { Streamlit.setFrameHeight(2200); }, []);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const h = Math.max(900, Math.ceil(document.getElementById('root')?.scrollHeight || 2200));
+      Streamlit.setFrameHeight(h);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [args.role, theme]);
+  const shared = { theme, setTheme, font, setFont };
+  if (args.role === 'student') return <StudentApp args={args} {...shared} />;
+  if (args.role === 'teacher') return <TeacherApp args={args} {...shared} />;
+  return <Login flash={args.flash} />;
+}
+
+
+/* ===== Streamlit mount ===== */
+function renderDsRoot() {
+  var args = window.__streamlitArgs || {};
+  var el = React.createElement(App, { args: args });
+  var root = document.getElementById("root");
+  try {
+    if (ReactDOM.createRoot) {
+      if (!window.__dsRoot) window.__dsRoot = ReactDOM.createRoot(root);
+      window.__dsRoot.render(el);
+    } else { ReactDOM.render(el, root); }
+  } catch (e) { try { ReactDOM.render(el, root); } catch (e2) {} }
+  try {
+    var h = Math.max(900, Math.ceil((document.getElementById("root") || document.body).scrollHeight || 2400));
+    Streamlit.setFrameHeight(h);
+  } catch (e) {}
+}
+window.addEventListener("dsArgs", function() { try { renderDsRoot(); } catch (e) {} });
+renderDsRoot();
+setTimeout(function() { try { renderDsRoot(); } catch (e) {} }, 500);
+
+</script></body></html>
