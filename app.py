@@ -226,6 +226,34 @@ def teacher_dashboard() -> dict[str, Any]:
     }
 
 
+def build_game_payload() -> dict[str, Any] | None:
+    """역할별 게임 payload. Sheets 오류 시 빈 상태 + 에러메시지로 폴백."""
+    from backend.game_store import (
+        load_all_configs,
+        load_all_records,
+        load_student_records,
+    )
+
+    role = st.session_state.role
+    try:
+        if role == "teacher":
+            return {
+                "configs": load_all_configs(sheets()),
+                "records": load_all_records(sheets()),
+            }
+        if role == "student" and st.session_state.student:
+            configs = [
+                c for c in load_all_configs(sheets()) if c.get("enabled")
+            ]
+            records = load_student_records(
+                sheets(), str(st.session_state.student["학번"])
+            )
+            return {"active": configs, "records": records}
+    except Exception as exc:
+        return {"configs": [], "records": [], "active": [], "error": str(exc)}
+    return None
+
+
 def build_payload() -> dict[str, Any]:
     role = st.session_state.role
     payload: dict[str, Any] = {
@@ -238,6 +266,7 @@ def build_payload() -> dict[str, Any]:
         "result": st.session_state.server_result,
         "worksheet": st.session_state.get("worksheet"),
         "uploadResult": st.session_state.get("uploadResult"),
+        "games": build_game_payload(),
     }
     try:
         json.dumps(payload, ensure_ascii=False, allow_nan=False)
@@ -472,6 +501,44 @@ def process_event(event: Any) -> bool:
             )
             st.session_state.uploadResult = res
             set_flash("success", "이미지가 Drive에 업로드됐습니다.")
+
+        elif action == "teacher_game_save":
+            from backend.game_store import save_config
+
+            if st.session_state.role != "teacher":
+                raise RuntimeError("교사 모드가 아닙니다.")
+            config = event.get("config", {}) or {}
+            save_config(sheets(), config)
+            set_flash("success", f"{config.get('week')}주차 게임이 저장됐습니다.")
+
+        elif action == "teacher_game_toggle":
+            from backend.game_store import set_enabled
+
+            if st.session_state.role != "teacher":
+                raise RuntimeError("교사 모드가 아닙니다.")
+            set_enabled(sheets(), int(event.get("week", 0)),
+                        bool(event.get("enabled", False)))
+            state = "활성화" if event.get("enabled") else "비활성화"
+            set_flash("success", f"{event.get('week')}주차 게임 {state}.")
+
+        elif action == "student_game_submit":
+            from backend.game_store import submit_record
+
+            if st.session_state.role != "student" or not st.session_state.student:
+                raise RuntimeError("학생 로그인 상태가 아닙니다.")
+            result = submit_record(sheets(), st.session_state.student, event)
+            st.session_state.server_result = {
+                "recordId": str(event.get("recordId", "")),
+                "status": "saved",
+                "score": result["score"],
+                "best": result["best"],
+                "savedAt": result["savedAt"],
+            }
+            set_flash(
+                "success",
+                f"{result['week']}주차 게임 저장! 점수 {result['score']}점 "
+                f"(최고 {result['best']}점, {result['tries']}회차)",
+            )
 
         elif action == "teacher_refresh":
             if st.session_state.role != "teacher":

@@ -41,3 +41,26 @@
 .ws-hint{color:#8c8278;font-size:12px}
 .ws-preview{display:grid;gap:18px}
 @media(max-width:900px){.ws-cols{grid-template-columns:1fr}.ws-row{grid-template-columns:1fr}}
+
+/* 주차별 미니게임 스타일 (TECH·HOME 토큰 재사용) */
+.gm-tabs{display:flex;gap:10px;overflow:auto;padding:2px}
+.gm-tab{min-width:86px;border:1px solid var(--line,#e8e4de);background:#fff;border-radius:15px;padding:10px 8px;cursor:pointer;font:inherit;display:grid;gap:2px;justify-items:center}
+.gm-tab b{font-size:15px}
+.gm-tab small{font-size:10px;color:#99928a}
+.gm-tab i{font-style:normal;font-size:10px;font-weight:850;color:#557054;background:#e7f0e5;border-radius:99px;padding:2px 8px}
+.gm-tab.on{border-color:#171717;box-shadow:0 0 0 3px rgba(0,0,0,.05)}
+.gm-student{display:grid;gap:18px}
+.gm-quiz-opt{display:block;width:100%;text-align:left;border:1px solid var(--line,#e8e4de);background:#fff;border-radius:13px;padding:12px 14px;margin:8px 0;font:inherit;font-size:14px;cursor:pointer}
+.gm-quiz-opt.correct{background:#e7f0e5;border-color:#7ba07b}
+.gm-quiz-opt.wrong{background:#fff0ed;border-color:#d49a8d}
+.gm-mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.gm-card{min-height:74px;border:1px solid var(--line,#e8e4de);border-radius:14px;background:#f1ece6;font:inherit;font-size:20px;font-weight:900;cursor:pointer;color:#8f8880}
+.gm-card.face{background:#fff;color:#171717;font-size:14px}
+.gm-card.matched{background:#e7f0e5;border-color:#7ba07b;color:#33502f;font-size:14px}
+.gm-frame{width:100%;min-height:420px;border:1px solid var(--line,#e8e4de);border-radius:15px;background:#fff}
+.gm-table{width:100%;border-collapse:collapse;font-size:12px}
+.gm-table th,.gm-table td{border-bottom:1px solid #eee9e3;padding:8px 6px;text-align:center}
+.gm-table th{color:#99928a;font-size:10px}
+.gm-qedit{border:1px dashed #d9d2ca;border-radius:14px;padding:12px;display:grid;gap:8px;margin:10px 0}
+.gm-switch{display:flex;align-items:center;gap:8px;border:1px solid var(--line,#e8e4de);border-radius:12px;padding:9px 12px;background:#fff;font-size:12px;font-weight:800}
+@media(max-width:720px){.gm-mem-grid{grid-template-columns:repeat(3,1fr)}.gm-frame{min-height:340px}}
