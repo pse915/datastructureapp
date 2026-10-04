@@ -7,7 +7,7 @@ const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teac
 // so the first streamlit:render message cannot be lost in a React useEffect race.
 window.__streamlitArgs = window.__streamlitArgs || DEFAULT_ARGS;
 window.addEventListener('message', (event) => {
-  if (event.source !== window.parent || !event.data || event.data.type !== 'streamlit:render') return;
+  if (!event.data || event.data.type !== 'streamlit:render') return;
   const next = event.data.args && typeof event.data.args === 'object' ? event.data.args : DEFAULT_ARGS;
   window.__streamlitArgs = next;
   window.dispatchEvent(new CustomEvent('technicalHomeArgs', { detail: next }));
@@ -82,7 +82,29 @@ function Flash({ flash }) {
 function Login({ flash }) {
   const [studentId, setStudentId] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
+  const [pending, setPending] = useState('');
   const canStudent = studentId.trim().length > 0;
+
+  useEffect(() => {
+    // Python이 새 payload를 보내면 로그인 시도 상태를 해제합니다.
+    if (flash) setPending('');
+  }, [flash?.type, flash?.text]);
+
+  const submitStudent = (e) => {
+    e?.preventDefault?.();
+    const sid = studentId.trim();
+    if (!sid || pending) return;
+    setPending('student');
+    emit('student_login', { studentId: sid });
+  };
+
+  const submitTeacher = (e) => {
+    e?.preventDefault?.();
+    if (!teacherPassword || pending) return;
+    setPending('teacher');
+    emit('teacher_login', { password: teacherPassword });
+  };
+
   return <main className="auth-page">
     <div className="auth-glow glow-one"/><div className="auth-glow glow-two"/>
     <section className="auth-brand"><div className="brand-mark">TH</div><div><b>TECH · HOME</b><span>LEARNING PORTFOLIO</span></div></section>
@@ -95,9 +117,9 @@ function Login({ flash }) {
       </section>
       <section className="auth-card">
         <div className="auth-card-head"><span className="eyebrow">WELCOME BACK</span><h2>포트폴리오에<br/>들어오세요.</h2><p>학번으로 학생 공간을 시작하거나 교사 모드로 관리하세요.</p></div>
-        <div className="login-field"><label>학생 로그인</label><div className="input-wrap"><Icon name="user"/><input value={studentId} onChange={e=>setStudentId(e.target.value)} onKeyDown={e=>e.key==='Enter'&&canStudent&&emit('student_login',{studentId:studentId.trim()})} placeholder="학번  예) 1701" inputMode="numeric"/><button disabled={!canStudent} onClick={()=>emit('student_login',{studentId:studentId.trim()})}><Icon name="arrow"/></button></div></div>
+        <form className="login-field" onSubmit={submitStudent} noValidate><label htmlFor="student-id">학생 로그인</label><div className="input-wrap"><Icon name="user"/><input id="student-id" value={studentId} onChange={e=>setStudentId(e.target.value.replace(/[^0-9]/g,'').slice(0,8))} placeholder="학번  예) 1701" inputMode="numeric" autoComplete="username"/><button type="submit" disabled={!canStudent||pending!==''} aria-label="학생 로그인"><Icon name="arrow"/></button></div></form>
         <div className="or-line"><span>TEACHER</span></div>
-        <div className="login-field"><label>교사 관리자</label><div className="input-wrap"><Icon name="lock"/><input type="password" value={teacherPassword} onChange={e=>setTeacherPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&emit('teacher_login',{password:teacherPassword})} placeholder="관리자 비밀번호"/><button onClick={()=>emit('teacher_login',{password:teacherPassword})}><Icon name="arrow"/></button></div></div>
+        <form className="login-field" onSubmit={submitTeacher} noValidate><label htmlFor="teacher-password">교사 관리자</label><div className="input-wrap"><Icon name="lock"/><input id="teacher-password" type="password" value={teacherPassword} onChange={e=>setTeacherPassword(e.target.value)} placeholder="관리자 비밀번호" autoComplete="current-password"/><button type="submit" disabled={!teacherPassword||pending!==''} aria-label="교사 로그인"><Icon name="arrow"/></button></div></form>
         <Flash flash={flash}/>
         <div className="auth-note"><Icon name="lock" size={15}/><span>학번과 교사용 비밀번호는 안전하게 처리됩니다.</span></div>
       </section>

@@ -34,7 +34,7 @@ BUILD_DIR = ROOT / "frontend" / "dist"
 SPREADSHEET_URL = str(
     st.secrets.get(
         "SPREADSHEET_URL",
-        "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit",
+        "https://docs.google.com/spreadsheets/d/1TM-90ev9Weibwqnq1xOhOQZCP78kNHANF_p4W2XZJMo/edit",
     )
 )
 
@@ -358,7 +358,13 @@ def process_event(event: Any) -> bool:
 
 
 # Component가 이전 값을 다시 전달하더라도 eventId가 같으면 한 번만 처리됩니다.
-event = portfolio_component(args=build_payload(), default=None, key="technical_home_portfolio")
+# 중요한 순서: 먼저 component를 호출해 이번 rerun에서 전달된 이벤트를 받습니다.
+# 그 다음 서버 상태를 변경하고, 변경된 payload를 React가 즉시 받도록 한 번만 rerun합니다.
+event = portfolio_component(
+    args=build_payload(),
+    default=None,
+    key="technical_home_portfolio",
+)
 if process_event(event):
     st.rerun()
 
