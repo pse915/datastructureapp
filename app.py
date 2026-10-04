@@ -364,7 +364,65 @@ def process_event(event: Any) -> bool:
 
 # Component가 이전 값을 다시 전달하더라도 eventId가 같으면 한 번만 처리됩니다.
 payload = build_payload()
-event = portfolio_component(**payload, default=None, key="technical_home_portfolio")
+# ===== 로그인: Streamlit 네이티브 (컴포넌트 통신 불필요) =====
+if st.session_state.role is None:
+    st.markdown("### TECH · HOME 로그인")
+    tab1, tab2 = st.tabs(["학생", "교사"])
+
+    with tab1:
+        sid = st.text_input("학번", key="login_sid", placeholder="예) 1701")
+        if st.button("학생 로그인", type="primary", key="btn_student"):
+            sid = str(sid).strip()
+            if not sid.isdigit():
+                st.error("학번은 숫자로 입력해 주세요.")
+            else:
+                try:
+                    student = find_student(sheets(), sid)
+                    if not student:
+                        st.error("학생명단에서 해당 학번을 찾지 못했습니다.")
+                    else:
+                        st.session_state.role = "student"
+                        st.session_state.student = student
+                        reload_student(student)
+                        st.session_state.flash = {
+                            "type": "success",
+                            "text": f"{student.get('이름', '학생')}님, 로그인되었습니다.",
+                        }
+                        st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+
+    with tab2:
+        pw = st.text_input("교사 비밀번호", type="password", key="login_pw")
+        if st.button("교사 로그인", type="primary", key="btn_teacher"):
+            expected = str(st.secrets.get("TEACHER_PASSWORD", ""))
+            if expected and pw == expected:
+                st.session_state.role = "teacher"
+                st.session_state.student = None
+                try:
+                    reload_teacher()
+                    st.session_state.flash = {
+                        "type": "success",
+                        "text": "교사 관리자 모드로 로그인되었습니다.",
+                    }
+                    st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+            else:
+                st.error("교사용 비밀번호가 올바르지 않습니다.")
+
+    st.stop()  # 로그인 전에는 React 컴포넌트를 렌더하지 않음
+
+# ===== 로그인 후: React 포트폴리오 UI =====
+event = portfolio_component(**build_payload(), default=None, key="technical_home_portfolio")
+
+# 문자열로 오는 경우 대비
+if isinstance(event, str):
+    try:
+        event = json.loads(event)
+    except Exception:
+        event = None
+
 if process_event(event):
     st.rerun()
 
