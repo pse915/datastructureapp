@@ -18,6 +18,17 @@ trouble accessing the component frontend assets...
 | 4 | 컴포넌트 이름에 점(`.`) 포함 (예: `app.datastructuregram`) | 에셋 URL 경로 해석 실패 가능 | `COMPONENT_NAME = "ds_black_dashboard"` (영문+언더스코어만) |
 | 5 | Vite `base: '/'` 절대경로 빌드 | 로컬은 되는데 Streamlit iframe에서 `/assets/...` 404 | `vite.config.js`에 `base: './'` 고정 |
 | 6 | 첫 로드 `None` 값을 이벤트로 오인 처리 | 로그인 전 크래시/rerun 루프 | `process_event`가 `None`·문자열·무이벤트를 `False`로 패스. `default=None`, `key` 고정 |
+| 7 | **컴포넌트 HTML이 CDN(unpkg 등)에서 React/Babel 로드** — 학교·기관망 프록시에서 차단 | 로컬은 되는데 **배포에서만** 위 오류 (메시지의 "proxy settings"가 바로 이것) | `frontend/build/vendor/`에 `react`·`react-dom`·`babel.min.js` **로컬 동봉**, `index.html`은 `./vendor/` 상대경로만 참조. 외부 차단과 무관하게 동작. 남는 원격 URL은 Pretendard 폰트 CSS 1개뿐이며 로드 실패해도 시스템 폰트로 렌더됨 |
+
+## 재배포 절차 (수정 후)
+
+```bash
+git add frontend/build app.py
+git commit -m "fix: bundle vendor locally, zero-CDN component"
+git push
+```
+
+Streamlit Cloud → 앱 → **Reboot app** (캐시된 옛 에셋 제거). 시크릿 모드 강력 새로고침으로 확인.
 
 ## 올바른 선언부 (app.py 발췌)
 
