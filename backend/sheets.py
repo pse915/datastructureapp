@@ -66,10 +66,7 @@ def _ensure_header(ws, expected: list[str]):
 
 
 def _ensure_student_header(ws):
-    """학생명단은 기존 5열 구조와 확장 6열(활성) 구조를 모두 허용한다.
-
-    로그인 자체가 이 헤더 검사 때문에 막히지 않도록 기존 5열 시트를 그대로 지원한다.
-    """
+    """학생명단은 기존 5열 구조와 확장 6열(활성) 구조를 모두 허용한다."""
     current = _with_backoff(lambda: ws.row_values(1))
     required = HEADERS[STUDENT_SHEET]
     if not current:

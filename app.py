@@ -34,7 +34,7 @@ BUILD_DIR = ROOT / "frontend" / "dist"
 SPREADSHEET_URL = str(
     st.secrets.get(
         "SPREADSHEET_URL",
-        "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit",
+        "https://docs.google.com/spreadsheets/d/1TM-90ev9Weibwqnq1xOhOQZCP78kNHANF_p4W2XZJMo/edit",
     )
 )
 
@@ -93,15 +93,17 @@ def sheets():
     return st.session_state.sheets
 
 
-def reload_student() -> None:
-    student = find_student(sheets(), st.session_state.student["학번"])
+def reload_student(student: dict[str, Any] | None = None) -> None:
+    # 로그인 직후에는 이미 find_student()로 검증한 객체를 재사용해
+    # 학생명단을 같은 rerun에서 두 번 읽지 않습니다.
+    if student is None:
+        student = find_student(sheets(), st.session_state.student["학번"])
     if not student:
         raise RuntimeError("로그인한 학생 정보를 학생명단에서 다시 확인할 수 없습니다.")
     st.session_state.student = student
-    st.session_state.student_portfolio = get_student_portfolio(
-        sheets(), student["학번"]
-    )
-    st.session_state.weeks = get_week_settings(sheets())
+    s = sheets()
+    st.session_state.student_portfolio = get_student_portfolio(s, student["학번"])
+    st.session_state.weeks = get_week_settings(s)
 
 
 def reload_teacher() -> None:
@@ -266,7 +268,7 @@ def process_event(event: Any) -> bool:
                 else:
                     st.session_state.role = "student"
                     st.session_state.student = student
-                    reload_student()
+                    reload_student(student)
                     set_flash("success", f"{student.get('이름', '학생')}님, 로그인되었습니다.")
 
         elif action == "teacher_login":
@@ -358,13 +360,7 @@ def process_event(event: Any) -> bool:
 
 
 # Component가 이전 값을 다시 전달하더라도 eventId가 같으면 한 번만 처리됩니다.
-# 중요한 순서: 먼저 component를 호출해 이번 rerun에서 전달된 이벤트를 받습니다.
-# 그 다음 서버 상태를 변경하고, 변경된 payload를 React가 즉시 받도록 한 번만 rerun합니다.
-event = portfolio_component(
-    args=build_payload(),
-    default=None,
-    key="technical_home_portfolio",
-)
+event = portfolio_component(args=build_payload(), default=None, key="technical_home_portfolio")
 if process_event(event):
     st.rerun()
 

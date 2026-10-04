@@ -46,8 +46,8 @@ function Login({ flash }) {
   const [pending, setPending] = useState('');
   const canStudent = studentId.trim().length > 0;
 
+  // Python이 처리한 결과가 다시 내려오면 로그인 버튼 잠금을 해제합니다.
   useEffect(() => {
-    // Python이 새 payload를 보내면 로그인 시도 상태를 해제합니다.
     if (flash) setPending('');
   }, [flash?.type, flash?.text]);
 
@@ -78,9 +78,9 @@ function Login({ flash }) {
       </section>
       <section className="auth-card">
         <div className="auth-card-head"><span className="eyebrow">WELCOME BACK</span><h2>포트폴리오에<br/>들어오세요.</h2><p>학번으로 학생 공간을 시작하거나 교사 모드로 관리하세요.</p></div>
-        <form className="login-field" onSubmit={submitStudent} noValidate><label htmlFor="student-id">학생 로그인</label><div className="input-wrap"><Icon name="user"/><input id="student-id" value={studentId} onChange={e=>setStudentId(e.target.value.replace(/[^0-9]/g,'').slice(0,8))} placeholder="학번  예) 1701" inputMode="numeric" autoComplete="username"/><button type="submit" disabled={!canStudent||pending!==''} aria-label="학생 로그인"><Icon name="arrow"/></button></div></form>
+        <form className="login-field" onSubmit={submitStudent} noValidate><label htmlFor="student-id">학생 로그인</label><div className="input-wrap"><Icon name="user"/><input id="student-id" value={studentId} onChange={e=>setStudentId(e.target.value.replace(/[^0-9]/g,'').slice(0,8))} placeholder="학번  예) 1701" inputMode="numeric" autoComplete="username"/><button type="submit" disabled={!canStudent || pending!==''} aria-label="학생 로그인"><Icon name="arrow"/></button></div></form>
         <div className="or-line"><span>TEACHER</span></div>
-        <form className="login-field" onSubmit={submitTeacher} noValidate><label htmlFor="teacher-password">교사 관리자</label><div className="input-wrap"><Icon name="lock"/><input id="teacher-password" type="password" value={teacherPassword} onChange={e=>setTeacherPassword(e.target.value)} placeholder="관리자 비밀번호" autoComplete="current-password"/><button type="submit" disabled={!teacherPassword||pending!==''} aria-label="교사 로그인"><Icon name="arrow"/></button></div></form>
+        <form className="login-field" onSubmit={submitTeacher} noValidate><label htmlFor="teacher-password">교사 관리자</label><div className="input-wrap"><Icon name="lock"/><input id="teacher-password" type="password" value={teacherPassword} onChange={e=>setTeacherPassword(e.target.value)} placeholder="관리자 비밀번호" autoComplete="current-password"/><button type="submit" disabled={!teacherPassword || pending!==''} aria-label="교사 로그인"><Icon name="arrow"/></button></div></form>
         <Flash flash={flash}/>
         <div className="auth-note"><Icon name="lock" size={15}/><span>학번과 교사용 비밀번호는 안전하게 처리됩니다.</span></div>
       </section>
