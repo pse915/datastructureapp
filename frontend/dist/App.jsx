@@ -1555,7 +1555,7 @@ function TeacherGames({ weeks, configs, records }) {
     setGtype(c.type || 'quiz');
     setTitle(c.title || `${week}주차 미니게임`);
     setDesc(c.desc || '');
-    setQuizQs(((c.content || {}).questions || []).map((q) => ({ q: q.q || '', options: [...(q.options || ['', '', '', '')], answer: q.answer || 0 })));
+    setQuizQs(((c.content || {}).questions || []).map((q) => ({ q: q.q || '', options: [...(q.options || ['', '', '', ''])], answer: q.answer || 0 })));
     setPairs(((c.content || {}).pairs || []).map((p) => ({ a: p.a || '', b: p.b || '' })));
     setEmbedUrl((c.content || {}).url || '');
     setEmbedHtml((c.content || {}).html || '');

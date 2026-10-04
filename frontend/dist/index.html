@@ -8,9 +8,23 @@
 </head>
 <body>
   <div id="root"></div>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <div id="boot-error" style="display:none;max-width:640px;margin:40px auto;padding:20px;border:1px solid #d49a8d;border-radius:14px;background:#fff0ed;font-family:sans-serif;font-size:13px;line-height:1.7"></div>
+  <script>
+    // vendor 로드 실패를 조기에 감지해 빈 화면 대신 원인을 표시한다.
+    window.__bootErrors = [];
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('boot-error');
+      if (!box || !e || !e.target || e.target === window) return;
+      var src = e.target.src || e.target.href || '';
+      if (!src) return;
+      window.__bootErrors.push(src);
+      box.style.display = 'block';
+      box.textContent = '필요한 파일 로드에 실패했습니다: ' + src + ' — 새로고침하거나 배포 파일(frontend/dist)을 확인하세요.';
+    }, true);
+  </script>
+  <script src="./vendor/react.production.min.js"></script>
+  <script src="./vendor/react-dom.production.min.js"></script>
+  <script src="./vendor/babel.min.js"></script>
   <script type="text/babel" data-presets="react" src="./App.jsx"></script>
 </body>
 </html>

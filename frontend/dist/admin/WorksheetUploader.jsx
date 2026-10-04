@@ -98,7 +98,7 @@ function WSQEditor({ q, onPatch, week, emit, Icon }) {
               <button className="ws-btn" onClick={() => onPatch({ right: [...q.right, ''] })}>+ 우 항목</button>
             </div>
           </div>
-          <small>정답 매칭: 좌 인덱스→우 인덱스 JSON (예: {"0":1})</small>
+          <small>정답 매칭: 좌 인덱스→우 인덱스 JSON (예: {'{"0":1}'})</small>
           <input value={JSON.stringify(q.pairs)} onChange={(e) => { try { onPatch({ pairs: JSON.parse(e.target.value) }); } catch (_) {} }} />
         </React.Fragment>
       )}
