@@ -7,3 +7,82 @@
 @media(max-width:900px){.auth-layout{grid-template-columns:1fr;gap:34px;margin-top:42px;max-width:760px}.auth-showcase{padding:0}.auth-showcase h1{font-size:clamp(48px,8vw,72px)}.auth-showcase>p{font-size:14px;max-width:620px}.auth-card{width:min(100%,560px);margin:0 auto}.auth-footer{margin-top:38px}}
 @media(max-width:720px){.side-rail{display:none}.main-canvas{margin-left:0;padding-bottom:76px}.topbar{height:64px;padding:0 15px}.topbar-context{display:none}.mobile-brand{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.08em}.content-wrap{width:calc(100% - 24px);padding:24px 0 45px}.mobile-nav{display:flex;position:fixed;z-index:40;bottom:10px;left:12px;right:12px;height:64px;background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.12);backdrop-filter:blur(18px);justify-content:space-around;padding:5px}.mobile-nav button{border:0;background:transparent;color:#aaa39b;font:inherit;font-size:9px;font-weight:800;display:grid;place-items:center;gap:3px;min-width:70px;border-radius:14px}.mobile-nav button.active{background:#f0ede8;color:#171717}.profile-banner{align-items:flex-start;flex-direction:column}.profile-main h1{font-size:27px}.profile-stats{width:100%;justify-content:space-between;gap:0}.profile-stats div{text-align:left}.stories-strip{align-items:flex-start;flex-direction:column;gap:10px}.stories-scroll{width:100%}.journal-cover{padding:23px;grid-template-columns:55px 1fr}.cover-number{width:52px;height:52px;border-radius:15px}.journal-cover h1{font-size:23px}.cover-star{display:none}.journal-body{padding:21px}.journal-body textarea{min-height:260px}.journal-footer{align-items:flex-end;flex-direction:column}.summary-hero h1,.teacher-welcome h1,.export-hero h1{font-size:39px}.summary-stat-grid{grid-template-columns:1fr}.archive-row{grid-template-columns:40px 1fr 60px}.status-pill{display:none}.teacher-welcome{padding:28px}.teacher-orbit{width:95px;height:95px;flex:none}.orbit-core{width:55px;height:55px}.admin-metrics{grid-template-columns:1fr 1fr}.admin-card{padding:19px}.picker-controls{flex-direction:column}.picker-controls select{min-width:0}.portfolio-side{grid-template-columns:1fr}.export-hero{padding:30px;gap:20px}.export-icon{width:80px;height:80px;border-radius:25px}.export-note{align-items:flex-start;flex-direction:column}.toast{left:12px;right:12px;top:73px}.auth-page{padding:25px 20px}.auth-layout{margin-top:32px}.auth-card{padding:28px;border-radius:24px}.auth-showcase h1{margin:17px 0}.story-row{margin-top:28px}}
 @media(max-width:450px){.admin-metrics{grid-template-columns:1fr}.profile-main{align-items:flex-start}.avatar-lg{width:64px;height:64px;font-size:22px}.featured-copy{padding:27px 24px}.featured-copy h2{font-size:28px}.journal-cover h1{font-size:20px}.archive-number{font-size:52px}.student-picker h1{font-size:27px}.auth-showcase h1{font-size:46px}.auth-card{padding:23px}.auth-note{align-items:flex-start}}
+.teacher-weeks { display: flex; flex-direction: column; gap: 1.25rem; }
+.weeks-hero {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 1.5rem 0 0.5rem;
+}
+.weeks-hero h1 { font-size: 2rem; line-height: 1.15; margin: 0.35rem 0; }
+.weeks-hero h1 i { font-style: italic; }
+.weeks-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: 1rem;
+}
+.card-panel {
+  background: var(--surface, #fff);
+  border-radius: 20px;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.04);
+}
+.weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+.week-chip {
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #f6f6f8;
+  border-radius: 12px;
+  padding: 0.55rem 0.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.week-chip.set { background: #eef6ff; }
+.week-chip.active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+.weeks-form label {
+  display: block;
+  margin: 0.85rem 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.weeks-form .text-input,
+.weeks-form textarea,
+.weeks-form select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  background: #fafafa;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.file-drop {
+  position: relative;
+  border: 1.5px dashed rgba(0,0,0,0.15);
+  border-radius: 14px;
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  margin-bottom: 1rem;
+}
+.file-drop input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.ink-button.full { width: 100%; justify-content: center; margin-top: 0.25rem; }
+
+@media (max-width: 860px) {
+  .weeks-layout { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
