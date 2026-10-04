@@ -28,24 +28,25 @@ const Streamlit = {
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: 'streamlit:setFrameHeight',
-      height: safeHeight
+      height: safeHeight,
     }, '*');
   },
   setComponentValue(value) {
+    // 공식 템플릿과 동일한 형태
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: 'streamlit:setComponentValue',
-      value,
-      dataType: 'json'
+      value: value,
+      dataType: 'json',
     }, '*');
   },
   setComponentReady() {
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: 'streamlit:componentReady',
-      apiVersion: 1
+      apiVersion: 1,
     }, '*');
-  }
+  },
 };
 
 function makeEventId(prefix = 'event') {
@@ -56,7 +57,7 @@ function makeEventId(prefix = 'event') {
 }
 function emit(action, payload = {}) {
   const msg = { action, eventId: makeEventId(action), ...payload };
-  console.log('[TECH HOME emit]', msg);  // F12 Console에서 확인
+  console.log('[TECH HOME emit]', msg); // F12에서 확인용
   Streamlit.setComponentValue(msg);
 }
 function Icon({ name, size = 21, stroke = 1.9 }) {
@@ -98,18 +99,21 @@ function Login({ flash }) {
   }, [flash?.type, flash?.text]);
 
   const submitStudent = (e) => {
-    e?.preventDefault?.();
-    const sid = studentId.trim();
-    if (!sid || pending) return;
-    setPending('student');
-    emit('student_login', { studentId: sid });
-  };
+  e?.preventDefault?.();
+  const sid = studentId.trim();
+  if (!sid) return;
+  setPending('student');
+  emit('student_login', { studentId: sid });
+  // 응답이 없어도 3초 뒤 다시 누를 수 있게
+  setTimeout(() => setPending(''), 3000);
+};
 
   const submitTeacher = (e) => {
     e?.preventDefault?.();
     if (!teacherPassword || pending) return;
     setPending('teacher');
     emit('teacher_login', { password: teacherPassword });
+    setTimeout(() => setPending(''), 3000);
   };
 
   return <main className="auth-page">
@@ -264,4 +268,10 @@ if (technicalHomeRoot && window.ReactDOM && typeof ReactDOM.createRoot === 'func
   ReactDOM.createRoot(technicalHomeRoot).render(
     React.createElement(App, { args: window.__streamlitArgs || DEFAULT_ARGS })
   );
+}
+
+// 마운트 후에 ready 선언 (타이밍 이슈 완화)
+if (window.parent !== window) {
+  Streamlit.setComponentReady();
+  Streamlit.setFrameHeight(document.body.scrollHeight || 800);
 }
