@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import './styles.css';
 
 const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null };
-
 const Streamlit = {
   setFrameHeight(height) {
     window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height }, '*');
@@ -13,17 +11,22 @@ const Streamlit = {
   },
 };
 
+// Streamlit Custom Component bootstrap. This must happen before the parent
+// sends the first render payload; otherwise the React view can remain stuck
+// on the initial login screen.
+if (window.parent !== window) {
+  window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1 }, '*');
+}
+
 function makeEventId(prefix = 'event') {
   try {
     if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`;
   } catch (_) {}
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
 function emit(action, payload = {}) {
   Streamlit.setComponentValue({ action, eventId: makeEventId(action), ...payload });
 }
-
 function useStreamlitArgs(initialArgs) {
   const [args, setArgs] = useState(initialArgs || DEFAULT_ARGS);
   useEffect(() => {
@@ -43,7 +46,6 @@ function useStreamlitArgs(initialArgs) {
   }, []);
   return args;
 }
-
 function Icon({ name, size = 21, stroke = 1.9 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
   const paths = {
@@ -63,18 +65,15 @@ function Icon({ name, size = 21, stroke = 1.9 }) {
   };
   return <svg {...common}>{paths[name] || paths.grid}</svg>;
 }
-
 function Avatar({ name = '학생', large = false, accent = 'ink' }) {
   const initial = String(name).trim().slice(0, 1) || 'T';
   return <div className={`avatar ${large ? 'avatar-lg' : ''} avatar-${accent}`}>{initial}</div>;
 }
-
 function Flash({ flash }) {
   if (!flash) return null;
   const icon = flash.type === 'success' ? 'check' : flash.type === 'error' ? 'star' : 'grid';
   return <div className={`toast toast-${flash.type || 'info'}`}><Icon name={icon} size={17}/><span>{flash.text}</span></div>;
 }
-
 function Login({ flash }) {
   const [studentId, setStudentId] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
@@ -101,7 +100,6 @@ function Login({ flash }) {
     <footer className="auth-footer">TECH · HOME <span>·</span> Learning Portfolio</footer>
   </main>;
 }
-
 function SideRail({ student, active, onChange, teacher = false }) {
   const items = teacher ? [['dashboard','home','홈'],['students','grid','학생'],['csv','download','내보내기']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['summary','heart','나의 기록']];
   return <aside className="side-rail">
@@ -110,19 +108,16 @@ function SideRail({ student, active, onChange, teacher = false }) {
     <div className="rail-bottom"><div className="rail-profile"><Avatar name={student?.이름 || '교사'} /><div><b>{student?.이름 || '관리자'}</b><small>{teacher?'Teacher':`${student?.학년||''}학년 ${student?.반||''}반`}</small></div></div><button className="logout-icon" onClick={()=>emit('logout')} title="로그아웃"><Icon name="logout" size={18}/></button></div>
   </aside>;
 }
-
 function MobileNav({ active, onChange, teacher = false }) {
   const items = teacher ? [['dashboard','home','홈'],['students','grid','학생'],['csv','download','CSV']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['summary','heart','나의 기록']];
   return <nav className="mobile-nav">{items.map(([key,icon,label])=><button key={key} className={active===key?'active':''} onClick={()=>onChange(key)}><Icon name={icon}/><span>{label}</span></button>)}</nav>;
 }
-
 function WeekStories({ weeks, portfolio, selected, onSelect }) {
   return <div className="stories-strip"><div className="stories-title"><span>YOUR WEEKS</span><b>1—17</b></div><div className="stories-scroll">{weeks.map(w=>{
     const no=Number(w.주차); const done=portfolio.find(r=>Number(r.주차)===no)?.제출;
     return <button key={no} className={`story-item ${selected===no?'selected':''} ${done?'done':''}`} onClick={()=>onSelect(no)}><div className="week-story-ring"><div>{String(no).padStart(2,'0')}</div></div><small>W{no}</small></button>;
   })}</div></div>;
 }
-
 function StudentHome({ student, portfolio, weeks, onPortfolio }) {
   const submitted=portfolio.filter(r=>r.제출).length;
   const total=portfolio.reduce((s,r)=>s+(Number(r.점수)||0),0);
@@ -137,8 +132,7 @@ function StudentHome({ student, portfolio, weeks, onPortfolio }) {
     </div>
   </div>;
 }
-
-function PortfolioPage({ student, weeks, portfolio, selectedWeek, setSelectedWeek, content, setContent, submitting, onSubmit }) {
+function PortfolioPage({ weeks, portfolio, selectedWeek, setSelectedWeek, content, setContent, submitting, onSubmit }) {
   const week=weeks.find(w=>Number(w.주차)===Number(selectedWeek));
   const record=portfolio.find(r=>Number(r.주차)===Number(selectedWeek));
   return <div className="portfolio-page">
@@ -152,12 +146,10 @@ function PortfolioPage({ student, weeks, portfolio, selectedWeek, setSelectedWee
     </div>
   </div>;
 }
-
 function SummaryPage({ portfolio }) {
   const total=portfolio.reduce((s,r)=>s+(Number(r.점수)||0),0); const max=portfolio.reduce((s,r)=>s+(Number(r.배점)||0),0); const done=portfolio.filter(r=>r.제출).length;
   return <div className="summary-page"><div className="summary-hero"><div><span className="eyebrow">MY ARCHIVE</span><h1>한 학기의 기록.</h1><p>17개의 주차가 하나의 학습 이야기로 이어집니다.</p></div><div className="archive-number">{done}<small>/17</small></div></div><div className="summary-stat-grid"><div><span>누적 점수</span><b>{total}</b><small>점</small></div><div><span>총 배점</span><b>{max}</b><small>점</small></div><div><span>제출률</span><b>{Math.round((done/17)*100)}</b><small>%</small></div></div><section className="archive-list">{Array.from({length:17},(_,i)=>i+1).map(no=>{const r=portfolio.find(x=>Number(x.주차)===no);return <div className={`archive-row ${r?.제출?'done':''}`} key={no}><div className="archive-week">{String(no).padStart(2,'0')}</div><div className="archive-content"><b>{r?.제출내용?String(r.제출내용).slice(0,90):'아직 기록하지 않았습니다.'}</b><span>{r?.피드백||'학습 기록을 제출하면 교사 피드백이 표시됩니다.'}</span></div><div className="archive-score">{r?.점수||'—'}<small>{r?.점수?` / ${r.배점}`:''}</small></div><div className={`status-pill ${r?.제출?'done':''}`}>{r?.제출?'제출완료':'미제출'}</div></div>})}</section></div>;
 }
-
 function StudentApp({ args }) {
   const student=args.student||{}; const weeks=args.weeks||[]; const portfolio=args.portfolio||[];
   const [active,setActive]=useState('home'); const [selectedWeek,setSelectedWeek]=useState(Number(weeks[0]?.주차||1)); const [content,setContent]=useState(''); const [submitting,setSubmitting]=useState(false);
@@ -166,16 +158,14 @@ function StudentApp({ args }) {
   useEffect(()=>{setSubmitting(false);},[args.result?.submissionId,args.flash]);
   const goPortfolio=(week)=>{if(week)setSelectedWeek(Number(week));setActive('portfolio');};
   const submit=()=>{setSubmitting(true);emit('student_submit',{week:Number(selectedWeek),content,submissionId:makeEventId('submission')});};
-  return <div className="app-frame"><SideRail student={student} active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>LEARNING PORTFOLIO</span><b>{active==='home'?'오늘의 기록':active==='portfolio'?`${selectedWeek}주차 포트폴리오`:'나의 아카이브'}</b></div><div className="topbar-actions"><button className="top-avatar" onClick={()=>setActive('summary')}><Avatar name={student.이름}/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='home'&&<StudentHome student={student} portfolio={portfolio} weeks={weeks} onPortfolio={goPortfolio}/>} {active==='portfolio'&&<PortfolioPage student={student} weeks={weeks} portfolio={portfolio} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} content={content} setContent={setContent} submitting={submitting} onSubmit={submit}/>} {active==='summary'&&<SummaryPage portfolio={portfolio}/>}</div></main><MobileNav active={active} onChange={setActive}/></div>;
+  return <div className="app-frame"><SideRail student={student} active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>LEARNING PORTFOLIO</span><b>{active==='home'?'오늘의 기록':active==='portfolio'?`${selectedWeek}주차 포트폴리오`:'나의 아카이브'}</b></div><div className="topbar-actions"><button className="top-avatar" onClick={()=>setActive('summary')}><Avatar name={student.이름}/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='home'&&<StudentHome student={student} portfolio={portfolio} weeks={weeks} onPortfolio={goPortfolio}/>} {active==='portfolio'&&<PortfolioPage weeks={weeks} portfolio={portfolio} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} content={content} setContent={setContent} submitting={submitting} onSubmit={submit}/>} {active==='summary'&&<SummaryPage portfolio={portfolio}/>}</div></main><MobileNav active={active} onChange={setActive}/></div>;
 }
-
 function TeacherDashboard({ dashboard, onStudent }) {
   const max=Math.max(1,...(dashboard.classStats||[]).map(x=>Number(x.제출건수)||0));
   return <div className="teacher-dashboard"><section className="teacher-welcome"><div><span className="eyebrow">TEACHER SPACE · 2026</span><h1>학생들의 학습을<br/><i>한눈에</i> 살펴보세요.</h1><p>포트폴리오 기록과 평가 흐름을 한 곳에서 관리합니다.</p></div><div className="teacher-orbit"><div className="orbit-core"><Icon name="star" size={28}/></div><span>01—17</span></div></section><div className="admin-metrics"><MetricCard label="등록 학생" value={dashboard.totalStudents} note="학생명단 기준"/><MetricCard label="제출 학생" value={dashboard.submittedStudents} note={`${dashboard.submissionRate}% 참여`}/><MetricCard label="평균 점수" value={dashboard.averageScore} note="전체 제출 기준"/><MetricCard label="학기" value="17주" note="포트폴리오 기간"/></div><div className="admin-grid"><section className="admin-card"><div className="admin-card-head"><div><span className="eyebrow">CLASS OVERVIEW</span><h2>반별 활동량</h2></div><span className="muted">제출 건수</span></div>{dashboard.classStats?.length?dashboard.classStats.map((r,i)=><div className="class-bar" key={`${r.학년}-${r.반}-${i}`}><div><b>{r.학년}학년 {r.반}반</b><span>{r.제출건수}건 · 평균 {r.평균점수}점</span></div><div className="bar-line"><i style={{width:`${Math.max(4,(r.제출건수/max)*100)}%`}}/></div></div>):<Empty text="아직 제출 데이터가 없습니다."/>}</section><section className="admin-card recent-admin"><div className="admin-card-head"><div><span className="eyebrow">RECENT WORK</span><h2>최근 포트폴리오</h2></div></div>{(dashboard.portfolio||[]).slice(0,6).map((r,i)=><button className="admin-student-row" key={`${r.제출ID||r.학번}-${r.주차}-${i}`} onClick={()=>onStudent(r.학번)}><Avatar name={r.이름}/><div><b>{r.이름} · {r.주차}주차</b><span>{String(r.제출내용||'').slice(0,50)||'학습 기록'}</span></div><strong>{r.점수||'—'}<small>{r.배점?` / ${r.배점}`:''}</small></strong></button>)}{!(dashboard.portfolio||[]).length&&<Empty text="최근 기록이 없습니다."/>}</section></div></div>;
 }
 function MetricCard({label,value,note}){return <div className="admin-metric"><span>{label}</span><b>{value}</b><small>{note}</small></div>}
 function Empty({text}){return <div className="empty-mini">{text}</div>}
-
 function TeacherStudents({ dashboard, initialStudent = '' }) {
   const students=dashboard.students||[]; const portfolio=dashboard.portfolio||[]; const [sid,setSid]=useState(''); const [week,setWeek]=useState(1); const [score,setScore]=useState(0); const [feedback,setFeedback]=useState('');
   const filtered=useMemo(()=>portfolio.find(r=>String(r.학번)===String(sid)&&Number(r.주차)===Number(week)),[portfolio,sid,week]);
@@ -185,26 +175,39 @@ function TeacherStudents({ dashboard, initialStudent = '' }) {
   const save=()=>emit('teacher_grade_save',{studentId:sid,week:Number(week),score:Number(score),feedback});
   return <div className="teacher-students"><div className="student-picker"><div><span className="eyebrow">ASSESSMENT</span><h1>학생 기록과 피드백</h1><p>학생의 제출 내용을 읽고 주차별 평가를 남겨보세요.</p></div><div className="picker-controls"><select value={sid} onChange={e=>setSid(e.target.value)}><option value="">학생 선택</option>{students.map(s=><option key={s.학번} value={s.학번}>{s.학번} · {s.이름} · {s.학년}-{s.반}</option>)}</select><select value={week} onChange={e=>setWeek(Number(e.target.value))}>{Array.from({length:17},(_,i)=><option key={i+1} value={i+1}>{i+1}주차</option>)}</select></div></div>{selected?<div className="assessment-layout"><section className="work-paper"><div className="paper-head"><Avatar name={selected.이름} large accent="cool"/><div><span>{selected.학년}학년 {selected.반}반 · {selected.학번}</span><h2>{selected.이름}의 {week}주차 기록</h2></div><span className="paper-week">W{week}</span></div>{filtered?<div className="student-answer">{filtered.제출내용||'작성 내용이 없습니다.'}</div>:<Empty text="이 학생의 해당 주차 제출 기록이 없습니다."/>}</section><aside className="assessment-card"><span className="eyebrow">TEACHER REVIEW</span><h2>평가 남기기</h2><label>점수 <small> / {filtered?.배점||10}점</small></label><input className="grade-input" type="number" min="0" max={filtered?.배점||10} value={score} onChange={e=>setScore(e.target.value)}/><label>한 줄 피드백</label><textarea value={feedback} onChange={e=>setFeedback(e.target.value)} placeholder="학생의 성장을 구체적으로 칭찬하거나 다음 학습 방향을 적어주세요."/><button className="ink-button full" onClick={save}><Icon name="check" size={17}/> 평가 저장</button></aside></div>:<div className="empty-state large">학생을 선택하면 제출 기록과 평가 영역이 나타납니다.</div>}</div>;
 }
-
 function CsvDownload({ portfolio, students }) {
   const headers=['학번','이름','학년','반',...Array.from({length:17},(_,i)=>`${i+1}주차`),'총점']; const map=new Map(); (students||[]).forEach(s=>{const id=String(s.학번||'');if(id)map.set(id,{학번:id,이름:s.이름||'',학년:s.학년||'',반:s.반||''});}); (portfolio||[]).forEach(r=>{const id=String(r.학번);if(!map.has(id))map.set(id,{학번:id,이름:r.이름||'',학년:r.학년||'',반:r.반||''});const item=map.get(id);item[`${r.주차}주차`]=r.점수||'';item.총점=(Number(item.총점)||0)+(Number(r.점수)||0);}); const csv=[headers,...[...map.values()].map(row=>headers.map(h=>row[h]??''))].map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const href=`data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csv)}`;
   return <div className="export-page"><section className="export-hero"><div><span className="eyebrow">DATA EXPORT</span><h1>학습 데이터를<br/><i>가져가세요.</i></h1><p>전체 학생의 1—17주차 점수와 총점을 Excel에서 바로 열 수 있는 CSV로 내보냅니다.</p></div><div className="export-icon"><Icon name="download" size={42}/></div></section><div className="export-note"><div><b>포함 데이터</b><span>학번 · 이름 · 학년 · 반 · 1—17주차 점수 · 총점</span></div><a href={href} download="기술가정_포트폴리오_성적표.csv" className="ink-button"><Icon name="download" size={17}/> CSV 다운로드</a></div></div>;
 }
-
 function TeacherApp({ args }) {
   const dashboard=args.teacher||{students:[],portfolio:[],classStats:[]}; const [active,setActive]=useState('dashboard'); const [studentJump,setStudentJump]=useState('');
   const goStudent=(sid)=>{setStudentJump(String(sid));setActive('students');};
   return <div className="app-frame"><SideRail student={{이름:'관리자'}} teacher active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>TEACHER SPACE</span><b>{active==='dashboard'?'종합 현황':active==='students'?'학생 평가':'CSV 내보내기'}</b></div><div className="topbar-actions"><button className="refresh-button" onClick={()=>emit('teacher_refresh')}><Icon name="refresh" size={17}/><span>새로고침</span></button><button className="top-avatar" onClick={()=>emit('logout')}><Avatar name="T" accent="cool"/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='dashboard'&&<TeacherDashboard dashboard={dashboard} onStudent={goStudent}/>} {active==='students'&&<TeacherStudents dashboard={dashboard} initialStudent={studentJump}/>}  {active==='csv'&&<CsvDownload portfolio={dashboard.portfolio||[]} students={dashboard.students||[]}/>}</div></main><MobileNav active={active} onChange={setActive} teacher/></div>;
 }
-
 function App({ args=DEFAULT_ARGS }) {
   const streamlitArgs=useStreamlitArgs(args);
-  useEffect(()=>{const resize=()=>Streamlit.setFrameHeight(Math.max(document.documentElement.scrollHeight,window.innerHeight)+24);resize();const obs=new ResizeObserver(resize);obs.observe(document.body);return()=>obs.disconnect();},[streamlitArgs.role,streamlitArgs.active]);
+  useEffect(()=>{
+    let frame = 0;
+    const resize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const root = document.getElementById('root');
+        const height = Math.max(640, Math.ceil(root?.scrollHeight || document.body.scrollHeight || 640));
+        Streamlit.setFrameHeight(height);
+      });
+    };
+    resize();
+    const root = document.getElementById('root') || document.body;
+    const obs = new ResizeObserver(resize);
+    obs.observe(root);
+    window.addEventListener('resize', resize);
+    return () => { cancelAnimationFrame(frame); obs.disconnect(); window.removeEventListener('resize', resize); };
+  }, [streamlitArgs.role]);
   if(streamlitArgs.role==='student') return <StudentApp args={streamlitArgs}/>;
   if(streamlitArgs.role==='teacher') return <TeacherApp args={streamlitArgs}/>;
   return <Login flash={streamlitArgs.flash}/>;
 }
-
 window.addEventListener('message',(event)=>{if(!event.data||event.data.type!=='streamlit:render')return;const next=event.data.args||DEFAULT_ARGS;window.__streamlitArgs=next;window.dispatchEvent(new CustomEvent('technicalHomeArgs',{detail:next}));});
 
 export default App;
+
