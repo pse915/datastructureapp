@@ -362,8 +362,6 @@ def process_event(event: Any) -> bool:
     return True
 
 
-# Component가 이전 값을 다시 전달하더라도 eventId가 같으면 한 번만 처리됩니다.
-payload = build_payload()
 # ===== 로그인: Streamlit 네이티브 (컴포넌트 통신 불필요) =====
 if st.session_state.role is None:
     st.markdown("### TECH · HOME 로그인")
