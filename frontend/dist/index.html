@@ -1,38 +1,30 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Datastructuregram — 자료구조 학습 피드</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/index.min.css">
+  <title>기술·가정 포트폴리오</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div id="root"></div>
   <div id="boot-error" style="display:none;max-width:640px;margin:40px auto;padding:20px;border:1px solid #d49a8d;border-radius:14px;background:#fff0ed;font-family:sans-serif;font-size:13px;line-height:1.7"></div>
   <script>
+    // vendor 로드 실패를 조기에 감지해 빈 화면 대신 원인을 표시한다.
     window.__bootErrors = [];
-    window.addEventListener("error", function (e) {
-      var box = document.getElementById("boot-error");
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('boot-error');
       if (!box || !e || !e.target || e.target === window) return;
-      var src = e.target.src || e.target.href || "";
+      var src = e.target.src || e.target.href || '';
       if (!src) return;
       window.__bootErrors.push(src);
-      box.style.display = "block";
-      box.textContent = "필요한 파일 로딩 중 문제 발생: " + src + " — frontend/dist 파일을 확인하세요.";
+      box.style.display = 'block';
+      box.textContent = '필요한 파일 로드에 실패했습니다: ' + src + ' — 새로고침하거나 배포 파일(frontend/dist)을 확인하세요.';
     }, true);
   </script>
   <script src="./vendor/react.production.min.js"></script>
   <script src="./vendor/react-dom.production.min.js"></script>
   <script src="./vendor/babel.min.js"></script>
-  <script type="text/babel" data-presets="react" src="./data/dsCurriculum.jsx"></script>
-  <script type="text/babel" data-presets="react" src="./components/Visualizers.jsx"></script>
-  <script type="text/babel" data-presets="react" src="./components/StoryBar.jsx"></script>
-  <script type="text/babel" data-presets="react" src="./components/FeedCard.jsx"></script>
-  <script type="text/babel" data-presets="react" src="./components/QuizCard.jsx"></script>
-  <script type="text/babel" data-presets="react" src="./components/DsFeed.jsx"></script>
-  <script type="text/babel" data-presets="react" src="./shim.jsx"></script>
   <script type="text/babel" data-presets="react" src="./App.jsx"></script>
 </body>
 </html>

@@ -23,49 +23,14 @@ from backend.sheets import (
 )
 
 st.set_page_config(
-    page_title="DS Blackboard — 자료구조 학습 대시보드",
-    page_icon="🧱",
+    page_title="기술·가정 포트폴리오",
+    page_icon="📚",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# =====================================================================
-# Streamlit Custom Component 선언 (로딩 오류 해결 핵심 블록)
-# ---------------------------------------------------------------------
-# 오류: "Your app is having trouble loading the app.X component ..."
-# 원인 3종과 해결:
-#  1) npm run build 미실행  → frontend/build/index.html 없음
-#     → 아래 REQUIRED_FILES 검사에서 즉시 감지 + 해결 명령어 안내
-#  2) path에 상대경로/잘못된 폴더(dist/raw-jsx) 지정
-#     → _RELEASE=True일 때 app.py 기준 절대경로(ROOT/frontend/build) 사용
-#  3) dev server URL 처리 미흡
-#     → _RELEASE=False + STREAMLIT_COMPONENT_DEV_URL 환경변수로만 dev 접속
-# 컴포넌트 이름은 URL 경로에 들어가므로 점(.) 없이 영문+언더스코어만 사용.
-# =====================================================================
-COMPONENT_NAME = "ds_black_dashboard"
-
-_RELEASE = os.getenv("DS_COMPONENT_RELEASE", "1").strip() not in ("0", "false", "False")
-_DEV_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()  # 예: http://localhost:3001
-
-ROOT = Path(__file__).parent.absolute()
-BUILD_DIR = ROOT / "frontend" / "build"  # vite build --outDir build 결과물 위치
-REQUIRED_FILES = ("index.html",)  # 빌드 산출물 필수 파일 (JS/CSS는 index.html이 참조)
-
-if not _RELEASE and _DEV_URL:
-    # 로컬 React 개발 모드: 터미널1) cd frontend && npm run dev (3001 포트)
-    ds_component = components.declare_component(COMPONENT_NAME, url=_DEV_URL)
-else:
-    missing = [f for f in REQUIRED_FILES if not (BUILD_DIR / f).exists()]
-    if missing:
-        raise RuntimeError(
-            "React 컴포넌트 빌드 산출물이 없습니다: "
-            + ", ".join(f"frontend/build/{f}" for f in missing)
-            + " | 해결: cd frontend && npm install && npm run build"
-            + " (vite.config.js의 outDir이 'build'인지 확인) 후 Streamlit 재실행."
-        )
-    ds_component = components.declare_component(COMPONENT_NAME, path=str(BUILD_DIR))
-
-
+ROOT = Path(__file__).parent
+BUILD_DIR = ROOT / "frontend" / "dist"
 SPREADSHEET_URL = str(
     st.secrets.get(
         "SPREADSHEET_URL",
@@ -74,7 +39,29 @@ SPREADSHEET_URL = str(
 )
 DRIVE_FOLDER_ID = str(st.secrets.get("DRIVE_FOLDER_ID", "")).strip()
 
-DS_UNITS = ["array", "linkedlist", "stack", "queue", "tree", "graph", "sort", "hash"]
+DEV_COMPONENT_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
+if DEV_COMPONENT_URL:
+    portfolio_component = components.declare_component(
+        "technical_home_portfolio",
+        url=DEV_COMPONENT_URL,
+    )
+else:
+    COMPONENT_INDEX = BUILD_DIR / "index.html"
+    COMPONENT_APP = BUILD_DIR / "App.jsx"
+    COMPONENT_STYLES = BUILD_DIR / "styles.css"
+    if not all(p.exists() for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES)):
+        missing = [
+            str(p.relative_to(ROOT))
+            for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES)
+            if not p.exists()
+        ]
+        raise RuntimeError(
+            f"React Custom Component 배포 파일이 없습니다: {', '.join(missing)}"
+        )
+    portfolio_component = components.declare_component(
+        "technical_home_portfolio",
+        path=str(BUILD_DIR),
+    )
 
 
 def init_state() -> None:
@@ -91,7 +78,6 @@ def init_state() -> None:
         "server_result": None,
         "worksheet": None,
         "uploadResult": None,
-        "ds_solved": [],
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -122,13 +108,6 @@ def reload_student(student: dict[str, Any] | None = None) -> None:
     s = sheets()
     st.session_state.student_portfolio = get_student_portfolio(s, student["학번"])
     st.session_state.weeks = get_week_settings(s)
-    # DS 해결 상태 복원 (Sheets 실패 시 빈 상태로 시작 — 저장은 ds_store 로컬 폴백)
-    try:
-        from backend.ds_store import load_student_solved
-
-        st.session_state.ds_solved = load_student_solved(s, str(student["학번"]))
-    except Exception:
-        st.session_state.ds_solved = st.session_state.get("ds_solved", [])
 
 
 def reload_teacher() -> None:
@@ -275,14 +254,6 @@ def build_game_payload() -> dict[str, Any] | None:
     return None
 
 
-def build_ds_payload() -> dict[str, Any] | None:
-    """DS 단원 해결 상태. 학생에게만 전달."""
-    if st.session_state.role != "student" or not st.session_state.student:
-        return None
-    solved = [u for u in (st.session_state.get("ds_solved") or []) if u in DS_UNITS]
-    return {"units": DS_UNITS, "solved": solved}
-
-
 def build_payload() -> dict[str, Any]:
     role = st.session_state.role
     payload: dict[str, Any] = {
@@ -296,7 +267,6 @@ def build_payload() -> dict[str, Any]:
         "worksheet": st.session_state.get("worksheet"),
         "uploadResult": st.session_state.get("uploadResult"),
         "games": build_game_payload(),
-        "ds": build_ds_payload(),
     }
     try:
         json.dumps(payload, ensure_ascii=False, allow_nan=False)
@@ -570,43 +540,11 @@ def process_event(event: Any) -> bool:
                 f"(최고 {result['best']}점, {result['tries']}회차)",
             )
 
-        elif action == "ds_quiz_submit":
-            from backend.ds_store import submit_ds_result
-
-            if st.session_state.role != "student" or not st.session_state.student:
-                raise RuntimeError("학생 로그인 상태가 아닙니다.")
-            unit_id = str(event.get("unitId", "")).strip()
-            if unit_id not in DS_UNITS:
-                raise RuntimeError(f"알 수 없는 단원입니다: {unit_id}")
-            result = submit_ds_result(sheets(), st.session_state.student, event)
-            solved = st.session_state.get("ds_solved") or []
-            if unit_id not in solved:
-                st.session_state.ds_solved = [*solved, unit_id]
-            st.session_state.server_result = {
-                "recordId": str(event.get("recordId", "")),
-                "status": "saved",
-                "solvedUnit": unit_id,
-                "score": result.get("score", 0),
-                "savedAt": result.get("savedAt", ""),
-            }
-            set_flash("success", f"{unit_id} 단원 퀴즈 해결! 진행도가 저장됐습니다.")
-
         elif action == "teacher_refresh":
             if st.session_state.role != "teacher":
                 raise RuntimeError("교사 모드가 아닙니다.")
             reload_teacher()
             set_flash("success", "Google Sheets 데이터를 새로 불러왔습니다.")
-
-        elif action == "teacher_export_app":
-            # 설정 모달의 "app.py 파일 다운로드": 서버 파일 원문을 그대로 전달
-            # (iframe 안에서 서버 파일에 직접 접근할 수 없으므로 payload 경유)
-            source = Path(__file__).read_text(encoding="utf-8")
-            st.session_state.server_result = {
-                "recordId": str(event.get("eventId", "")),
-                "status": "exported",
-                "appPy": source,
-            }
-            set_flash("success", "app.py 원문을 내려보냅니다.")
 
         elif action == "logout":
             st.session_state.role = None
@@ -617,7 +555,6 @@ def process_event(event: Any) -> bool:
             st.session_state.students = []
             st.session_state.worksheet = None
             st.session_state.uploadResult = None
-            st.session_state.ds_solved = []
             set_flash("success", "로그아웃되었습니다.")
 
         else:
@@ -629,12 +566,10 @@ def process_event(event: Any) -> bool:
     return True
 
 
-# 최초 로드 시 컴포넌트 값이 None이면 이벤트 처리 없이 대기한다.
-# (None을 process_event에 넣으면 last_event_id 오염 없이 패스됨)
-event = ds_component(
+event = portfolio_component(
     **build_payload(),
     default=None,
-    key="ds_black_dashboard",
+    key="technical_home_portfolio",
 )
 
 if process_event(event):

@@ -1,64 +1,53 @@
-# Component 로딩 오류 해결 가이드
+# 컴포넌트 로딩 실패 수정 내역 (2026-10-04)
 
-대상 오류:
+증상: `Your app is having trouble loading the app.technical_home_portfolio component.`
 
-```text
-Your app is having trouble loading the app.datastructuregram component.
-If this is an installed component that works locally, the app may be having
-trouble accessing the component frontend assets...
+## 원인 1 (직접 원인): `App.jsx` 문법 오류 1건
+
+`TeacherGames` 초기화 코드에 닫는 괄호 누락:
+
+```js
+// 수정 전 (Babel 파싱 실패 → 스크립트 전체 중단 → setComponentReady 미발송)
+options: [...(q.options || ['', '', '', '')],
+// 수정 후
+options: [...(q.options || ['', '', '', ''])],
 ```
 
-## 원인 → 해결 대응표
+`text/babel` 스크립트는 파일 전체가 파싱되어야 실행되므로,
+오류 1개가 컴포넌트 전체 로딩 실패로 나타났다.
+`frontend/src/games/GameModule.jsx`, `dist/games/GameModule.jsx` 동일 수정.
 
-| # | 원인 | 증상 | 해결 (본 패키지 반영) |
-|---|---|---|---|
-| 1 | `npm run build` 미실행. `frontend/build/index.html`이 없음 | 위 오류 + 앱 전체 중단 | `app.py`가 `REQUIRED_FILES` 검사로 부팅 즉시 감지하고 해결 명령어를 포함한 `RuntimeError` 출력. `frontend/build/index.html` 단일파일 폴백 동봉이라 바로 실행 가능 |
-| 2 | `declare_component`에 상대경로·잘못된 폴더 지정 (예: `dist/` + 날것 `.jsx` 여러 개) | iframe 404, 빈 화면, 컴포넌트명과 무관하게 로드 실패 | `_RELEASE` 플래그 + `Path(__file__).parent.absolute()` 기준 절대경로 `frontend/build` 사용. 날것 JSX 다파일 구조 폐기 → 빌드 산출물(또는 단일 `index.html`)만 서빙 |
-| 3 | dev server URL 처리 미흡 (배포 환경에서 `url=`로 선언) | Cloud에서 localhost 접속 시도 → 영원히 로딩 | 배포 기본 `_RELEASE=True`. dev는 `DS_COMPONENT_RELEASE=0` + `STREAMLIT_COMPONENT_DEV_URL=http://localhost:3001` 둘 다 있을 때만 `url=` 사용 |
-| 4 | 컴포넌트 이름에 점(`.`) 포함 (예: `app.datastructuregram`) | 에셋 URL 경로 해석 실패 가능 | `COMPONENT_NAME = "ds_black_dashboard"` (영문+언더스코어만) |
-| 5 | Vite `base: '/'` 절대경로 빌드 | 로컬은 되는데 Streamlit iframe에서 `/assets/...` 404 | `vite.config.js`에 `base: './'` 고정 |
-| 6 | 첫 로드 `None` 값을 이벤트로 오인 처리 | 로그인 전 크래시/rerun 루프 | `process_event`가 `None`·문자열·무이벤트를 `False`로 패스. `default=None`, `key` 고정 |
-| 7 | **컴포넌트 HTML이 CDN(unpkg 등)에서 React/Babel 로드** — 학교·기관망 프록시에서 차단 | 로컬은 되는데 **배포에서만** 위 오류 (메시지의 "proxy settings"가 바로 이것) | `frontend/build/vendor/`에 `react`·`react-dom`·`babel.min.js` **로컬 동봉**, `index.html`은 `./vendor/` 상대경로만 참조. 외부 차단과 무관하게 동작. 남는 원격 URL은 Pretendard 폰트 CSS 1개뿐이며 로드 실패해도 시스템 폰트로 렌더됨 |
+## 원인 2 (잠재 원인): 독립 모듈 파일의 JSX 중괄호 오류
 
-## 재배포 절차 (수정 후)
+`frontend/src/admin/WorksheetUploader.jsx`:
 
-```bash
-git add frontend/build app.py
-git commit -m "fix: bundle vendor locally, zero-CDN component"
-git push
+```jsx
+<!-- 수정 전: JSX 텍스트 안의 { } 는 표현식으로 파싱되어 오류 -->
+<small>... (예: {"0":1})</small>
+<!-- 수정 후 -->
+<small>... (예: {'{"0":1}'})</small>
 ```
 
-Streamlit Cloud → 앱 → **Reboot app** (캐시된 옛 에셋 제거). 시크릿 모드 강력 새로고침으로 확인.
+해당 파일은 `index.html`에서 로드하지 않으므로 이번 장애와 무관하나 함께 수정.
 
-## 올바른 선언부 (app.py 발췌)
+## 원인 3 (환경 요인 제거): CDN 의존 제거
 
-```python
-COMPONENT_NAME = "ds_black_dashboard"
-_RELEASE = os.getenv("DS_COMPONENT_RELEASE", "1").strip() not in ("0", "false", "False")
-_DEV_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
+`frontend/dist/index.html`이 `unpkg.com`에서 React/ReactDOM/Babel을
+매번 내려받던 구조를 로컬 벤더링으로 교체:
 
-ROOT = Path(__file__).parent.absolute()
-BUILD_DIR = ROOT / "frontend" / "build"
-REQUIRED_FILES = ("index.html",)
+- `frontend/dist/vendor/react.production.min.js` (18.3.1)
+- `frontend/dist/vendor/react-dom.production.min.js` (18.3.1)
+- `frontend/dist/vendor/babel.min.js` (7.24.7)
 
-if not _RELEASE and _DEV_URL:
-    ds_component = components.declare_component(COMPONENT_NAME, url=_DEV_URL)
-else:
-    missing = [f for f in REQUIRED_FILES if not (BUILD_DIR / f).exists()]
-    if missing:
-        raise RuntimeError(
-            "React 컴포넌트 빌드 산출물이 없습니다: "
-            + ", ".join(f"frontend/build/{f}" for f in missing)
-            + " | 해결: cd frontend && npm install && npm run build"
-            + " 후 Streamlit 재실행."
-        )
-    ds_component = components.declare_component(COMPONENT_NAME, path=str(BUILD_DIR))
-```
+배포망 지연·차단 시에도 컴포넌트가 로드된다.
+로드 실패 시 빈 화면 대신 원인을 보여주는 `#boot-error` 박스도 추가.
 
-## 체크리스트
+## 검증 (배포 전 수행됨)
 
-- [ ] `frontend/build/index.html` 존재 (동봉 폴백 또는 `npm run build` 결과물)
-- [ ] `vite.config.js`: `base: './'`, `outDir: 'build'`
-- [ ] 배포 환경변수에 `STREAMLIT_COMPONENT_DEV_URL` 없음
-- [ ] 컴포넌트명·`key`에 점(`.`) 없음
-- [ ] 브라우저 캐시 강력 새로고침 후 재확인
+- Babel 7.24.7로 `dist/src App.jsx`, `GameModule.jsx`, `WorksheetUploader.jsx`,
+  `googleService.js` 전체 트랜스파일 → 전부 통과
+- 변환 결과물(92,888 bytes)을 `node --check`로 파싱 검증 → 통과
+- `app.py`, `backend/*.py` 전부를 `py_compile` → 통과
+
+재발 방지: `App.jsx` 수정 후에는 위 검증(또는 `npm run dev`에서 확인) 후
+`frontend/dist/`를 커밋할 것.
