@@ -410,79 +410,76 @@ def process_event(event: Any) -> bool:
     return True
 
 
-def render_teacher_week_admin() -> None:
-    """교사: 주차별 포트폴리오(활동지) 등록 + PDF/Word 업로드."""
-    if st.session_state.role != "teacher":
-        return
-
-    with st.expander("📋 주차별 포트폴리오 등록 (관리자)", expanded=False):
-        if not HAS_WEEK_ADMIN:
-            st.warning(
-                "`backend/week_admin.py`가 없습니다. "
-                "주차 등록·파일 추출 기능을 쓰려면 해당 파일을 추가하세요."
-            )
-            return
-
-        st.caption(
-            "PDF / Word / TXT를 올리면 텍스트를 추출해 Google Sheets 「주차설정」에 반영합니다. "
-            "원본 파일은 Drive 폴더(Secrets: DRIVE_FOLDER_ID)에 보관할 수 있습니다."
-        )
-
-        week_no = st.number_input("주차", min_value=1, max_value=17, value=1, step=1)
-        goal = st.text_input("학습목표", placeholder="예) 스마트홈과 주거 환경 이해하기")
-        prompt = st.text_area("활동지 질문 / 안내 (직접 입력)", height=120)
-        score = st.number_input("배점", min_value=0, max_value=100, value=10, step=1)
-        published = st.selectbox("공개여부", ["Y", "N"], index=0)
-        uploaded = st.file_uploader(
-            "활동지 파일 (PDF / Word / TXT)",
-            type=["pdf", "docx", "txt"],
-        )
-
-        if st.button("주차 설정 저장", type="primary", key="btn_save_week"):
+        elif action == "teacher_week_save":
+            if st.session_state.role != "teacher":
+                raise RuntimeError("교사 모드가 아닙니다.")
             try:
-                material_url = ""
-                final_prompt = (prompt or "").strip()
+                from backend.week_admin import (
+                    extract_text_from_upload,
+                    upload_bytes_to_drive,
+                    upsert_week_setting,
+                )
+            except ImportError as exc:
+                raise RuntimeError(
+                    "backend/week_admin.py 가 필요합니다. 파일을 추가해 주세요."
+                ) from exc
 
-                if uploaded is not None:
-                    raw = uploaded.getvalue()
-                    mime = uploaded.type or "application/octet-stream"
-                    if DRIVE_FOLDER_ID:
-                        material_url = upload_bytes_to_drive(
-                            service_account(),
-                            DRIVE_FOLDER_ID,
-                            f"week{int(week_no)}_{uploaded.name}",
-                            raw,
-                            mime_type=mime,
-                        )
-                    extracted = extract_text_from_upload(uploaded)
-                    if not final_prompt and extracted:
-                        final_prompt = extracted[:4000]
+            week_no = int(event.get("week", 0))
+            goal = str(event.get("goal", "")).strip()
+            prompt = str(event.get("prompt", "")).strip()
+            score = int(event.get("score", 10) or 10)
+            published = str(event.get("published", "Y")).strip() or "Y"
+            file_name = str(event.get("fileName", "")).strip()
+            file_b64 = str(event.get("fileBase64", "")).strip()
+            mime = str(event.get("mimeType", "application/octet-stream")).strip()
 
-                if not (goal or "").strip() and not final_prompt:
-                    st.error("학습목표 또는 활동지 내용(파일/직접 입력)이 필요합니다.")
-                else:
-                    upsert_week_setting(
-                        sheets(),
-                        int(week_no),
-                        (goal or "").strip() or f"{int(week_no)}주차 학습",
-                        final_prompt or (goal or "").strip(),
-                        score=int(score),
-                        published=published,
-                        material_url=material_url,
+            material_url = ""
+            final_prompt = prompt
+
+            if file_b64 and file_name:
+                import base64
+                import io
+
+                raw = base64.b64decode(file_b64)
+                folder_id = str(st.secrets.get("DRIVE_FOLDER_ID", "")).strip()
+                if folder_id:
+                    material_url = upload_bytes_to_drive(
+                        service_account(),
+                        folder_id,
+                        f"week{week_no}_{file_name}",
+                        raw,
+                        mime_type=mime or "application/octet-stream",
                     )
-                    reload_teacher()
-                    st.success(
-                        f"{int(week_no)}주차 설정이 Google Sheets에 저장되었습니다."
-                    )
-                    if material_url:
-                        st.markdown(f"자료 링크: {material_url}")
-                    st.rerun()
-            except Exception as exc:
-                st.error(str(exc))
 
+                # 업로드 파일처럼 흉내 내어 텍스트 추출
+                class _MemFile:
+                    def __init__(self, name, data):
+                        self.name = name
+                        self._data = data
+                        self._pos = 0
 
-# ----- 교사 관리 패널 (React 위/아래 Streamlit UI) -----
-render_teacher_week_admin()
+                    def read(self):
+                        return self._data
+
+                extracted = extract_text_from_upload(_MemFile(file_name, raw))
+                if not final_prompt and extracted:
+                    final_prompt = extracted[:4000]
+
+            if not goal and not final_prompt:
+                raise RuntimeError("학습목표 또는 활동지 내용이 필요합니다.")
+
+            upsert_week_setting(
+                sheets(),
+                week_no,
+                goal or f"{week_no}주차 학습",
+                final_prompt or goal,
+                score=score,
+                published=published,
+                material_url=material_url,
+            )
+            reload_teacher()
+            set_flash("success", f"{week_no}주차 포트폴리오 설정이 저장되었습니다.")
+
 
 # ----- React 컴포넌트는 스크립트에서 단 1회만 호출 -----
 event = portfolio_component(
