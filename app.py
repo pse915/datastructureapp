@@ -34,7 +34,7 @@ BUILD_DIR = ROOT / "frontend" / "dist"
 SPREADSHEET_URL = str(
     st.secrets.get(
         "SPREADSHEET_URL",
-        "https://docs.google.com/spreadsheets/d/1TM-90ev9Weibwqnq1xOhOQZCP78kNHANF_p4W2XZJMo/edit",
+        "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit",
     )
 )
 
