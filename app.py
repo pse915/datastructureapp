@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -32,15 +34,30 @@ BUILD_DIR = ROOT / "frontend" / "dist"
 SPREADSHEET_URL = str(
     st.secrets.get(
         "SPREADSHEET_URL",
-        "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit",
+        "https://docs.google.com/spreadsheets/d/1TM-90ev9Weibwqnq1xOhOQZCP78kNHANF_p4W2XZJMo/edit",
     )
 )
 
 # React가 화면 전체를 담당하는 Streamlit Custom Component.
-portfolio_component = components.declare_component(
-    "technical_home_portfolio",
-    path=str(BUILD_DIR),
-)
+# 로컬 개발에서는 STREAMLIT_COMPONENT_DEV_URL을 지정하면 Vite 서버를 사용하고,
+# 배포 환경에서는 검증된 frontend/dist 정적 빌드를 직접 서빙합니다.
+DEV_COMPONENT_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
+if DEV_COMPONENT_URL:
+    portfolio_component = components.declare_component(
+        "technical_home_portfolio",
+        url=DEV_COMPONENT_URL,
+    )
+else:
+    COMPONENT_INDEX = BUILD_DIR / "index.html"
+    COMPONENT_APP = BUILD_DIR / "App.jsx"
+    COMPONENT_STYLES = BUILD_DIR / "styles.css"
+    if not all(p.exists() for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES)):
+        missing = [str(p.relative_to(ROOT)) for p in (COMPONENT_INDEX, COMPONENT_APP, COMPONENT_STYLES) if not p.exists()]
+        raise RuntimeError(f"React Custom Component 배포 파일이 없습니다: {', '.join(missing)}")
+    portfolio_component = components.declare_component(
+        "technical_home_portfolio",
+        path=str(BUILD_DIR),
+    )
 
 
 def init_state() -> None:
@@ -208,6 +225,12 @@ def build_payload() -> dict[str, Any]:
         "flash": st.session_state.flash,
         "result": st.session_state.server_result,
     }
+    # declare_component args must cross Streamlit's JSON boundary cleanly.
+    # Fail here with a useful message instead of producing a silent iframe error.
+    try:
+        json.dumps(payload, ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"React component args가 JSON 직렬화되지 않습니다: {exc}") from exc
     return payload
 
 

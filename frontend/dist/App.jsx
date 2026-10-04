@@ -1,16 +1,19 @@
+const { useEffect, useMemo, useRef, useState } = React;
+
 
 const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null };
 
-// Streamlit Component v1 handshake: this MUST be sent after this document
-// and the React/Babel runtime have loaded, otherwise Streamlit can report
-// that the component frontend failed to load.
-if (window.parent !== window) {
-  window.parent.postMessage({
-    isStreamlitMessage: true,
-    type: 'streamlit:componentReady',
-    apiVersion: 1
-  }, '*');
-}
+// Streamlit Component v1 bridge. Install the render listener BEFORE announcing readiness
+// so the first streamlit:render message cannot be lost in a React useEffect race.
+window.__streamlitArgs = window.__streamlitArgs || DEFAULT_ARGS;
+window.addEventListener('message', (event) => {
+  if (event.source !== window.parent || !event.data || event.data.type !== 'streamlit:render') return;
+  const next = event.data.args && typeof event.data.args === 'object' ? event.data.args : DEFAULT_ARGS;
+  window.__streamlitArgs = next;
+  window.dispatchEvent(new CustomEvent('technicalHomeArgs', { detail: next }));
+});
+
+
 const Streamlit = {
   setFrameHeight(height) {
     const safeHeight = Math.max(640, Math.ceil(Number(height) || 640));
@@ -190,12 +193,14 @@ function TeacherApp({ args }) {
 function App({ args = DEFAULT_ARGS }) {
   const [streamlitArgs, setStreamlitArgs] = useState(args || DEFAULT_ARGS);
   useEffect(() => {
-    const onRender = (event) => {
-      if (!event.data || event.data.type !== 'streamlit:render') return;
-      setStreamlitArgs(event.data.args || DEFAULT_ARGS);
+    const onArgs = (event) => {
+      const next = event.detail && typeof event.detail === 'object' ? event.detail : DEFAULT_ARGS;
+      setStreamlitArgs(next);
     };
-    window.addEventListener('message', onRender);
-    return () => window.removeEventListener('message', onRender);
+    window.addEventListener('technicalHomeArgs', onArgs);
+    // Pick up an args payload that arrived before React effects mounted.
+    if (window.__streamlitArgs) setStreamlitArgs(window.__streamlitArgs);
+    return () => window.removeEventListener('technicalHomeArgs', onArgs);
   }, []);
   useEffect(()=>{
     let frame = 0;
@@ -203,18 +208,36 @@ function App({ args = DEFAULT_ARGS }) {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const root = document.getElementById('root');
-        const height = Math.max(640, Math.ceil(root?.scrollHeight || document.body.scrollHeight || 640));
+        if (!root) return;
+        const height = Math.max(640, Math.ceil(root.getBoundingClientRect().height || root.scrollHeight || 640));
         Streamlit.setFrameHeight(height);
       });
     };
     resize();
-    const root = document.getElementById('root') || document.body;
-    const obs = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+    const root = document.getElementById('root');
+    const obs = typeof ResizeObserver !== 'undefined' && root ? new ResizeObserver(resize) : null;
     if (obs) obs.observe(root);
     window.addEventListener('resize', resize);
     return () => { cancelAnimationFrame(frame); if (obs) obs.disconnect(); window.removeEventListener('resize', resize); };
-  }, [streamlitArgs.role]);
+  }, [streamlitArgs.role, streamlitArgs.active]);
   if(streamlitArgs.role==='student') return <StudentApp args={streamlitArgs}/>;
   if(streamlitArgs.role==='teacher') return <TeacherApp args={streamlitArgs}/>;
   return <Login flash={streamlitArgs.flash}/>;
+}
+
+
+// Standalone deployment entrypoint: dist/App.jsx is not a Vite module.
+// Render first, then announce readiness so Streamlit can immediately send args.
+const technicalHomeRoot = document.getElementById('root');
+if (technicalHomeRoot && window.ReactDOM && typeof ReactDOM.createRoot === 'function') {
+  ReactDOM.createRoot(technicalHomeRoot).render(
+    React.createElement(App, { args: window.__streamlitArgs || DEFAULT_ARGS })
+  );
+}
+if (window.parent !== window) {
+  window.parent.postMessage({
+    isStreamlitMessage: true,
+    type: 'streamlit:componentReady',
+    apiVersion: 1
+  }, '*');
 }
