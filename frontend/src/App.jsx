@@ -7,7 +7,7 @@ const Streamlit = {
     window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height }, '*');
   },
   setComponentValue(value) {
-    window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setComponentValue', value }, '*');
+    window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setComponentValue', value, dataType: 'json' }, '*');
   },
 };
 
