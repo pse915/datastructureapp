@@ -360,7 +360,7 @@ def process_event(event: Any) -> bool:
 
 
 # Component가 이전 값을 다시 전달하더라도 eventId가 같으면 한 번만 처리됩니다.
-event = portfolio_component(args=build_payload(), default=None, key="technical_home_portfolio")
+event = portfolio_component(**build_payload(), key="technical_home_portfolio")
 if process_event(event):
     st.rerun()
 
