@@ -8,7 +8,13 @@ const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teac
 window.__streamlitArgs = window.__streamlitArgs || DEFAULT_ARGS;
 window.addEventListener('message', (event) => {
   if (!event.data || event.data.type !== 'streamlit:render') return;
-  const next = event.data.args?.args || event.data.args || DEFAULT_ARGS;
+  const raw = event.data.args;
+  // Python: portfolio_component(**payload)  → raw = payload
+  // Python: portfolio_component(args=payload) → raw = { args: payload }
+  const next =
+    raw && typeof raw === 'object' && raw.args && typeof raw.args === 'object' && !('role' in raw)
+      ? raw.args
+      : (raw && typeof raw === 'object' ? raw : DEFAULT_ARGS);
   window.__streamlitArgs = next;
   window.dispatchEvent(new CustomEvent('technicalHomeArgs', { detail: next }));
 });
@@ -49,7 +55,9 @@ function makeEventId(prefix = 'event') {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 function emit(action, payload = {}) {
-  Streamlit.setComponentValue({ action, eventId: makeEventId(action), ...payload });
+  const msg = { action, eventId: makeEventId(action), ...payload };
+  console.log('[TECH HOME emit]', msg);  // F12 Console에서 확인
+  Streamlit.setComponentValue(msg);
 }
 function Icon({ name, size = 21, stroke = 1.9 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
