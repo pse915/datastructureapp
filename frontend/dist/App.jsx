@@ -8,7 +8,7 @@ const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teac
 window.__streamlitArgs = window.__streamlitArgs || DEFAULT_ARGS;
 window.addEventListener('message', (event) => {
   if (!event.data || event.data.type !== 'streamlit:render') return;
-  const next = event.data.args && typeof event.data.args === 'object' ? event.data.args : DEFAULT_ARGS;
+  const next = event.data.args?.args || event.data.args || DEFAULT_ARGS;
   window.__streamlitArgs = next;
   window.dispatchEvent(new CustomEvent('technicalHomeArgs', { detail: next }));
 });
