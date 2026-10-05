@@ -67,18 +67,23 @@ def has_service_account() -> bool:
         return False
 
 
-def get_spreadsheet_url() -> str:
-    """Streamlit Secrets에서 SPREADSHEET_URL을 읽는다.
+# Sheets 주소: Secrets(SPREADSHEET_URL)가 있으면 우선, 없으면 아래 내장 주소 사용.
+# 시트가 바뀌면 이 한 줄의 d/ 와 /edit 사이 ID만 교체하세요.
+BUILTIN_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1rxM6EX8tR7XE6pW2y4QU72oS29WVGqUwac300U81-hs/edit"
 
-    기존 하드코딩 fallback을 제거하고, 누락 시 배포 원인을 명시한다.
-    """
+
+def get_spreadsheet_url() -> str:
+    """Streamlit Secrets → 내장 주소 순으로 Sheets URL을 읽는다."""
     url = safe_secret("SPREADSHEET_URL", "").strip()
-    if not url:
-        raise RuntimeError(
-            "Streamlit Secrets에 SPREADSHEET_URL이 없습니다. "
-            "App settings → Secrets에 SPREADSHEET_URL을 설정하세요."
-        )
-    return url
+    if url:
+        return url
+    builtin = BUILTIN_SPREADSHEET_URL.strip()
+    if builtin:
+        return builtin
+    raise RuntimeError(
+        "Sheets 주소가 없습니다. app.py의 BUILTIN_SPREADSHEET_URL 또는 "
+        "Secrets의 SPREADSHEET_URL을 설정하세요."
+    )
 
 
 def render_setup_guide(missing: list[str], warnings: list[str]) -> None:
@@ -96,8 +101,11 @@ def render_setup_guide(missing: list[str], warnings: list[str]) -> None:
     st.subheader("설정 방법 (Streamlit Community Cloud)")
     st.write("1. 앱 페이지 → 우측 하단 **Manage app** → **Settings** → **Secrets**")
     st.write("2. 아래 TOML을 붙여넣고 Save 후 **Reboot app**")
+    st.write("참고: Sheets 주소는 `app.py`의 `BUILTIN_SPREADSHEET_URL`에 내장되어 있어 생략 가능. "
+             "다른 시트를 쓰려면 `SPREADSHEET_URL`을 추가하면 내장 주소보다 우선 적용됩니다.")
     st.code(
-        'SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"\n'
+        '# SPREADSHEET_URL은 app.py에 내장되어 있어 생략 가능 (다른 시트 사용 시에만 추가)\n'
+        '# SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"\n'
         'TEACHER_PASSWORD = "긴-임의-비밀번호로-교체"\n'
         '# DRIVE_FOLDER_ID = "자료/이미지용 Drive 폴더 ID (선택)"\n'
         '\n'

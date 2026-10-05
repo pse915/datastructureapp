@@ -117,8 +117,17 @@ _, calls_b, stopped_b = run_app(full)
 assert not stopped_b, "정상 Secrets에서는 중단하면 안 된다"
 assert not any(k == "stop" for k, _ in calls_b), calls_b
 
-# Case C: URL만 없고 서비스계정 있음 → 여전히 중단
+# Case C: 서비스계정만 있고 URL Secrets 없음 → 내장 주소로 통과 (중단 없음)
 _, _, stopped_c = run_app({"gcp_service_account": {"type": "service_account"}})
-assert stopped_c, "SPREADSHEET_URL 없으면 중단해야 한다"
+assert not stopped_c, "내장 URL이 있으면 URL Secrets 없이도 통과해야 한다"
+
+# Case D: 내장 주소까지 비어 있으면 중단
+g_d, _, _ = run_app({"gcp_service_account": {"type": "service_account"}})
+g_d["BUILTIN_SPREADSHEET_URL"] = ""
+try:
+    g_d["require_setup"]()
+    raise AssertionError("내장 주소도 없으면 중단해야 한다")
+except StopSentinel:
+    pass
 
 print("setup gate tests passed")
