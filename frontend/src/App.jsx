@@ -1,8 +1,28 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Streamlit } from 'streamlit-component-lib';
 import './styles.css';
+import { MAX_CONTENT_LENGTH } from './lib/constants.js';
+import { validateContent, validateEmbedUrl, validateStudentId } from './lib/validation.js';
+import { TeacherDirectory } from './components/TeacherDirectory.jsx';
+import { AutoGradeResult } from './components/AutoGradeResult.jsx';
+import { loadWrongNotes, saveWrongNotes } from './lib/wrongnote.js';
+import { StudentVisual, TeacherVisual, VISUAL_LABEL, VisualPlayer } from './visual/VisualModule.jsx';
 
-const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null, worksheet: null, uploadResult: null, games: null };
+export function isVisualConfig(c) {
+  return !!c && String(c.type || '').startsWith('visual:');
+}
+export function splitVisual(list) {
+  const src = list || [];
+  return {
+    games: src.filter((c) => !isVisualConfig(c)),
+    visuals: src.filter((c) => isVisualConfig(c)),
+  };
+}
+
+// 보안 नोट: 제출내용/피드백은 항상 {value} 텍스트로 렌더링한다.
+// dangerouslySetInnerHTML을 사용하지 않아 React 기본 이스케이프가 적용된다.
+
+const DEFAULT_ARGS = { role: null, student: null, weeks: [], portfolio: [], teacher: null, flash: null, result: null, worksheet: null, uploadResult: null, games: null, csvExport: null };
 function makeEventId(prefix = 'event') {
   try {
     if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -44,7 +64,8 @@ function Login({ flash }) {
   const [studentId, setStudentId] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
   const [pending, setPending] = useState('');
-  const canStudent = studentId.trim().length > 0;
+  const [studentError, setStudentError] = useState('');
+  const canStudent = studentId.trim().length > 0 && !validateStudentId(studentId.trim());
 
   // Python이 처리한 결과가 다시 내려오면 로그인 버튼 잠금을 해제합니다.
   useEffect(() => {
@@ -55,6 +76,9 @@ function Login({ flash }) {
     e?.preventDefault?.();
     const sid = studentId.trim();
     if (!sid || pending) return;
+    const err = validateStudentId(sid);
+    setStudentError(err);
+    if (err) return;
     setPending('student');
     emit('student_login', { studentId: sid });
   };
@@ -78,7 +102,7 @@ function Login({ flash }) {
       </section>
       <section className="auth-card">
         <div className="auth-card-head"><span className="eyebrow">WELCOME BACK</span><h2>포트폴리오에<br/>들어오세요.</h2><p>학번으로 학생 공간을 시작하거나 교사 모드로 관리하세요.</p></div>
-        <form className="login-field" onSubmit={submitStudent} noValidate><label htmlFor="student-id">학생 로그인</label><div className="input-wrap"><Icon name="user"/><input id="student-id" value={studentId} onChange={e=>setStudentId(e.target.value.replace(/[^0-9]/g,'').slice(0,8))} placeholder="학번  예) 1701" inputMode="numeric" autoComplete="username"/><button type="submit" disabled={!canStudent || pending!==''} aria-label="학생 로그인"><Icon name="arrow"/></button></div></form>
+        <form className="login-field" onSubmit={submitStudent} noValidate><label htmlFor="student-id">학생 로그인</label><div className="input-wrap"><Icon name="user"/><input id="student-id" value={studentId} onChange={e=>{setStudentId(e.target.value.replace(/[^0-9]/g,'').slice(0,8)); setStudentError('');}} placeholder="학번  예) 1701" inputMode="numeric" autoComplete="username"/><button type="submit" disabled={!canStudent || pending!==''} aria-label="학생 로그인"><Icon name="arrow"/></button></div>{studentError ? <div className="empty-mini">{studentError}</div> : null}</form>
         <div className="or-line"><span>TEACHER</span></div>
         <form className="login-field" onSubmit={submitTeacher} noValidate><label htmlFor="teacher-password">교사 관리자</label><div className="input-wrap"><Icon name="lock"/><input id="teacher-password" type="password" value={teacherPassword} onChange={e=>setTeacherPassword(e.target.value)} placeholder="관리자 비밀번호" autoComplete="current-password"/><button type="submit" disabled={!teacherPassword || pending!==''} aria-label="교사 로그인"><Icon name="arrow"/></button></div></form>
         <Flash flash={flash}/>
@@ -89,7 +113,7 @@ function Login({ flash }) {
   </main>;
 }
 function SideRail({ student, active, onChange, teacher = false }) {
-  const items = teacher ? [['dashboard','home','홈'],['games','star','게임'],['worksheets','plus','학습지'],['students','grid','학생'],['csv','download','내보내기']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['games','star','게임'],['summary','heart','나의 기록']];
+  const items = teacher ? [['dashboard','home','홈'],['games','star','게임'],['visual','bookmark','실습'],['worksheets','plus','학습지'],['students','grid','학생'],['csv','download','내보내기']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['games','star','게임'],['visual','bookmark','실습'],['summary','heart','나의 기록']];
   return <aside className="side-rail">
     <div className="rail-logo"><div className="brand-mark small">TH</div><span>TECH<br/>HOME</span></div>
     <nav className="rail-nav">{items.map(([key,icon,label])=><button key={key} className={active===key?'active':''} onClick={()=>onChange(key)}><Icon name={icon}/><span>{label}</span></button>)}</nav>
@@ -97,7 +121,7 @@ function SideRail({ student, active, onChange, teacher = false }) {
   </aside>;
 }
 function MobileNav({ active, onChange, teacher = false }) {
-  const items = teacher ? [['dashboard','home','홈'],['games','star','게임'],['worksheets','plus','학습지'],['students','grid','학생'],['csv','download','CSV']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['games','star','게임'],['summary','heart','나의 기록']];
+  const items = teacher ? [['dashboard','home','홈'],['games','star','게임'],['visual','bookmark','실습'],['worksheets','plus','학습지'],['students','grid','학생'],['csv','download','CSV']] : [['home','home','홈'],['portfolio','grid','포트폴리오'],['games','star','게임'],['visual','bookmark','실습'],['summary','heart','나의 기록']];
   return <nav className="mobile-nav">{items.map(([key,icon,label])=><button key={key} className={active===key?'active':''} onClick={()=>onChange(key)}><Icon name={icon}/><span>{label}</span></button>)}</nav>;
 }
 function WeekStories({ weeks, portfolio, selected, onSelect }) {
@@ -120,53 +144,77 @@ function StudentHome({ student, portfolio, weeks, onPortfolio }) {
     </div>
   </div>;
 }
-function PortfolioPage({ weeks, portfolio, selectedWeek, setSelectedWeek, content, setContent, submitting, onSubmit }) {
+function PortfolioPage({ weeks, portfolio, selectedWeek, setSelectedWeek, content, setContent, submitting, onSubmit, answers, setAnswer, autoGrade }) {
   const week=weeks.find(w=>Number(w.주차)===Number(selectedWeek));
   const record=portfolio.find(r=>Number(r.주차)===Number(selectedWeek));
+  const rubricQs=((week && week.루브릭 && week.루브릭.questions) || []);
+  const showAuto=autoGrade && autoGrade.graded && Number(autoGrade.week)===Number(selectedWeek);
   return <div className="portfolio-page">
     <WeekStories weeks={weeks} portfolio={portfolio} selected={Number(selectedWeek)} onSelect={setSelectedWeek}/>
     <div className="portfolio-layout">
       <section className="journal-card">
         <div className="journal-cover"><div className="cover-number">{String(selectedWeek).padStart(2,'0')}</div><div><span className="eyebrow">WEEK {selectedWeek}</span><h1>{week?.학습목표||`${selectedWeek}주차 학습 기록`}</h1></div><span className="cover-star">✦</span></div>
-        <div className="journal-body"><div className="question-block"><span>ACTIVITY PROMPT</span><p>{week?.활동지질문||'이번 주 활동에서 배운 점과 나의 생각을 자유롭게 기록해보세요.'}</p></div><label>MY LEARNING NOTE</label><textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="오늘 배운 것, 직접 해본 것, 어려웠던 점, 새롭게 생각한 것을 기록하세요."/><div className="journal-footer"><span>{record?.제출?`마지막 저장 ${record.수정일시||record.제출일시||'-'}`:'아직 제출하지 않았어요.'}</span><button className="ink-button" disabled={submitting||!content.trim()} onClick={onSubmit}>{submitting?'저장 중…':record?.제출?'수정하여 제출':'기록 제출'} <Icon name="arrow" size={17}/></button></div></div>
+        <div className="journal-body"><div className="question-block"><span>ACTIVITY PROMPT</span><p>{week?.활동지질문||'이번 주 활동에서 배운 점과 나의 생각을 자유롭게 기록해보세요.'}</p></div>{rubricQs.length?<div className="question-block"><span>KEY ANSWERS (자동채점)</span>{rubricQs.map(q=><label key={q.key} style={{display:'block',marginTop:6}}>{q.key}{q.hint?` · ${q.hint}`:''}<input className="text-input" value={answers[q.key]||''} onChange={e=>setAnswer(q.key,e.target.value)} placeholder="핵심 답안을 입력하세요"/></label>)}</div>:null}<label>MY LEARNING NOTE</label><textarea value={content} onChange={e=>setContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))} maxLength={MAX_CONTENT_LENGTH} placeholder="오늘 배운 것, 직접 해본 것, 어려웠던 점, 새롭게 생각한 것을 기록하세요."/>{showAuto?<AutoGradeResult autoGrade={autoGrade}/>:null}<div className="journal-footer"><span>{content.trim().length}/{MAX_CONTENT_LENGTH}자{record?.제출?` · 마지막 저장 ${record.수정일시||record.제출일시||'-'}`:' · 아직 제출하지 않았어요.'}{record?.채점상태?` · ${record.채점상태}`:''}</span><button className="ink-button" disabled={submitting||!content.trim()||!!validateContent(content)} onClick={onSubmit}>{submitting?'저장 중…':record?.제출?'수정하여 제출':'기록 제출'} <Icon name="arrow" size={17}/></button></div></div>
       </section>
-      <aside className="portfolio-side"><div className="side-card score-card"><span className="eyebrow">THIS WEEK</span><strong>{record?.점수||'—'}<small> / {record?.배점||week?.배점||0}</small></strong><p>{record?.점수?'교사가 채점한 결과입니다.':'제출 후 교사 평가가 표시됩니다.'}</p></div><div className="side-card feedback-side"><span className="eyebrow">TEACHER NOTE</span>{record?.피드백?<><h3>이번 기록에 대한 피드백</h3><p>“{record.피드백}”</p></>:<><h3>아직 피드백이 없어요.</h3><p>교사가 기록을 확인하면 이곳에 한 줄 평이 표시됩니다.</p></>}</div></aside>
+      <aside className="portfolio-side"><div className="side-card score-card"><span className="eyebrow">THIS WEEK</span><strong>{record?.점수||'—'}<small> / {record?.배점||week?.배점||0}</small></strong><p>{record?.채점상태==='교사확정'?'교사가 확정한 결과입니다.':record?.점수?'자동채점 결과입니다. 교사 확정 전입니다.':'제출 후 자동채점과 교사 평가가 표시됩니다.'}</p></div><div className="side-card feedback-side"><span className="eyebrow">TEACHER NOTE</span>{record?.피드백?<><h3>이번 기록에 대한 피드백</h3><p>“{record.피드백}”</p></>:<><h3>아직 피드백이 없어요.</h3><p>교사가 기록을 확인하면 이곳에 한 줄 평이 표시됩니다.</p></>}</div>{(record?.자동문항||[]).filter(m=>!m.ok).length?<div className="side-card auto-grade-card"><span className="eyebrow">REVIEW NOTE</span><h3>복습할 문항 {(record.자동문항||[]).filter(m=>!m.ok).length}개</h3>{(record.자동문항||[]).filter(m=>!m.ok).map((m,i)=><p key={i}><b>{m.key}</b> · {m.text}</p>)}</div>:null}</aside>
     </div>
   </div>;
 }
-function SummaryPage({ portfolio }) {
+function SummaryPage({ portfolio, studentId }) {
   const total=portfolio.reduce((s,r)=>s+(Number(r.점수)||0),0); const max=portfolio.reduce((s,r)=>s+(Number(r.배점)||0),0); const done=portfolio.filter(r=>r.제출).length;
-  return <div className="summary-page"><div className="summary-hero"><div><span className="eyebrow">MY ARCHIVE</span><h1>한 학기의 기록.</h1><p>17개의 주차가 하나의 학습 이야기로 이어집니다.</p></div><div className="archive-number">{done}<small>/17</small></div></div><div className="summary-stat-grid"><div><span>누적 점수</span><b>{total}</b><small>점</small></div><div><span>총 배점</span><b>{max}</b><small>점</small></div><div><span>제출률</span><b>{Math.round((done/17)*100)}</b><small>%</small></div></div><section className="archive-list">{Array.from({length:17},(_,i)=>i+1).map(no=>{const r=portfolio.find(x=>Number(x.주차)===no);return <div className={`archive-row ${r?.제출?'done':''}`} key={no}><div className="archive-week">{String(no).padStart(2,'0')}</div><div className="archive-content"><b>{r?.제출내용?String(r.제출내용).slice(0,90):'아직 기록하지 않았습니다.'}</b><span>{r?.피드백||'학습 기록을 제출하면 교사 피드백이 표시됩니다.'}</span></div><div className="archive-score">{r?.점수||'—'}<small>{r?.점수?` / ${r.배점}`:''}</small></div><div className={`status-pill ${r?.제출?'done':''}`}>{r?.제출?'제출완료':'미제출'}</div></div>})}</section></div>;
+  const [reviewFilter,setReviewFilter]=useState('all');
+  const wrongLocal=useMemo(()=>{ try { return loadWrongNotes(studentId); } catch(_){ return []; } },[studentId,portfolio.length]);
+  const rows17=Array.from({length:17},(_,i)=>i+1).map(no=>({no,r:portfolio.find(x=>Number(x.주차)===no)}));
+  const visible=rows17.filter(({r})=>{
+    if(reviewFilter==='review') return !r || !r.제출 || (Number(r.오답수)||0)>0 || wrongLocal.some(w=>Number(w.week)===Number(r.주차));
+    if(reviewFilter==='done') return r && r.제출 && (Number(r.오답수)||0)===0;
+    return true;
+  });
+  return <div className="summary-page"><div className="summary-hero"><div><span className="eyebrow">MY ARCHIVE</span><h1>한 학기의 기록.</h1><p>17개의 주차가 하나의 학습 이야기로 이어집니다.</p></div><div className="archive-number">{done}<small>/17</small></div></div><div className="summary-stat-grid"><div><span>누적 점수</span><b>{total}</b><small>점</small></div><div><span>총 배점</span><b>{max}</b><small>점</small></div><div><span>제출률</span><b>{Math.round((done/17)*100)}</b><small>%</small></div></div><div className="ws-row" style={{gap:8,margin:'8px 0'}}><span className="eyebrow">REVIEW FILTER</span><button className={reviewFilter==='all'?'ws-btn primary':'ws-btn'} onClick={()=>setReviewFilter('all')}>전체</button><button className={reviewFilter==='review'?'ws-btn primary':'ws-btn'} onClick={()=>setReviewFilter('review')}>복습필요</button><button className={reviewFilter==='done'?'ws-btn primary':'ws-btn'} onClick={()=>setReviewFilter('done')}>완료</button></div><section className="archive-list">{visible.map(({no,r})=>{const miss=!r||!r.제출; return <div className={`archive-row ${r?.제출?'done':''}`} key={no}><div className="archive-week">{String(no).padStart(2,'0')}</div><div className="archive-content"><b>{r?.제출내용?String(r.제출내용).slice(0,90):'아직 기록하지 않았습니다.'}</b><span>{(Number(r?.오답수)||0)>0?`복습 ${r.오답수}개 · `:''}{r?.피드백||'학습 기록을 제출하면 교사 피드백이 표시됩니다.'}</span></div><div className="archive-score">{r?.점수||'—'}<small>{r?.점수?` / ${r.배점}`:''}</small></div><div className={`status-pill ${r?.제출?'done':''}`}>{miss?'미제출':(Number(r.오답수)>0?'복습필요':'제출완료')}</div></div>})}</section></div>;
 }
 function StudentApp({ args }) {
   const student=args.student||{}; const weeks=args.weeks||[]; const portfolio=args.portfolio||[];
   const [active,setActive]=useState('home'); const [selectedWeek,setSelectedWeek]=useState(Number(weeks[0]?.주차||1)); const [content,setContent]=useState(''); const [submitting,setSubmitting]=useState(false);
+  const [answers,setAnswers]=useState({});
+  const setAnswer=(k,v)=>setAnswers(p=>({...p,[k]:String(v).slice(0,2000)}));
   const pendingSubmissionId=useRef(null);
   const record=portfolio.find(r=>Number(r.주차)===Number(selectedWeek));
+  const autoGrade=(args.result && args.result.autoGrade && Number(args.result.autoGrade.week)===Number(selectedWeek))?args.result.autoGrade:null;
   useEffect(()=>{setContent(record?.제출내용||'');pendingSubmissionId.current=null;setSubmitting(false);},[selectedWeek,record?.제출내용]);
   useEffect(()=>{if(args.result?.submissionId){pendingSubmissionId.current=null;setSubmitting(false);}else if(args.flash){setSubmitting(false);}},[args.result?.submissionId,args.flash]);
+  useEffect(()=>{ // 오답노트 자동 저장 (최근 자동채점의 오답 문항)
+    if(!autoGrade || !autoGrade.graded) return;
+    const wrong=(autoGrade.feedback||[]).filter(f=>!f.ok).map(f=>({week:Number(selectedWeek),key:String(f.key),text:String(f.text||'').slice(0,200),at:new Date().toISOString()}));
+    if(wrong.length && student.학번) saveWrongNotes(student.학번,wrong);
+  },[autoGrade && autoGrade.score, autoGrade && JSON.stringify((autoGrade.feedback||[]).map(f=>f.key+String(f.ok)))]);
   const goPortfolio=(week)=>{if(week)setSelectedWeek(Number(week));setActive('portfolio');};
-  const submit=()=>{if(submitting)return;setSubmitting(true);if(!pendingSubmissionId.current)pendingSubmissionId.current=makeEventId('submission');emit('student_submit',{week:Number(selectedWeek),content,submissionId:pendingSubmissionId.current});};
-  return <div className="app-frame"><SideRail student={student} active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>LEARNING PORTFOLIO</span><b>{active==='home'?'오늘의 기록':active==='games'?'주차별 게임':active==='portfolio'?`${selectedWeek}주차 포트폴리오`:'나의 아카이브'}</b></div><div className="topbar-actions"><button className="top-avatar" onClick={()=>setActive('summary')}><Avatar name={student.이름}/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='home'&&<StudentHome student={student} portfolio={portfolio} weeks={weeks} onPortfolio={goPortfolio}/>} {active==='portfolio'&&<PortfolioPage weeks={weeks} portfolio={portfolio} selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} content={content} setContent={setContent} submitting={submitting} onSubmit={submit}/>} {active==='games'&&<StudentGames games={(args.games&&args.games.active)||[]} myRecords={(args.games&&args.games.records)||[]}/>} {active==='summary'&&<SummaryPage portfolio={portfolio}/>}</div></main><MobileNav active={active} onChange={setActive}/></div>;
+  const submit=()=>{if(submitting)return;setSubmitting(true);if(!pendingSubmissionId.current)pendingSubmissionId.current=makeEventId('submission');emit('student_submit',{week:Number(selectedWeek),content,answers,submissionId:pendingSubmissionId.current});};
+  const gameList=((args.games&&args.games.active)||[]).filter(c=>!isVisualConfig(c));
+  const visualList=((args.games&&args.games.active)||[]).filter(c=>isVisualConfig(c));
+  const visualRecords=((args.games&&args.games.records)||[]).filter(r=>String(r.게임유형||'').startsWith('visual:'));
+  const gameRecords=((args.games&&args.games.records)||[]).filter(r=>!String(r.게임유형||'').startsWith('visual:'));
+  return <div className="app-frame"><SideRail student={student} active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>LEARNING PORTFOLIO</span><b>{active==='home'?'오늘의 기록':active==='games'?'주차별 게임':active==='visual'?'주차별 실습':active==='portfolio'?`${selectedWeek}주차 포트폴리오`:'나의 아카이브'}</b></div><div className="topbar-actions"><button className="top-avatar" onClick={()=>setActive('summary')}><Avatar name={student.이름}/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='home'&&<StudentHome student={student} portfolio={portfolio} weeks={weeks} onPortfolio={goPortfolio}/>} {active==='portfolio'&&<PortfolioPage weeks={weeks} portfolio={portfolio} selectedWeek={selectedWeek} setSelectedWeek={(w)=>{setSelectedWeek(Number(w));setAnswers({});}} content={content} setContent={setContent} submitting={submitting} onSubmit={submit} answers={answers} setAnswer={setAnswer} autoGrade={autoGrade}/>} {active==='games'&&<StudentGames games={gameList} myRecords={gameRecords}/>} {active==='visual'&&<StudentVisual visuals={visualList} myRecords={visualRecords} emit={emit}/>} {active==='summary'&&<SummaryPage portfolio={portfolio} studentId={student.학번}/>}</div></main><MobileNav active={active} onChange={setActive}/></div>;
 }
 function TeacherDashboard({ dashboard, onStudent }) {
   const max=Math.max(1,...(dashboard.classStats||[]).map(x=>Number(x.제출건수)||0));
-  return <div className="teacher-dashboard"><section className="teacher-welcome"><div><span className="eyebrow">TEACHER SPACE · 2026</span><h1>학생들의 학습을<br/><i>한눈에</i> 살펴보세요.</h1><p>포트폴리오 기록과 평가 흐름을 한 곳에서 관리합니다.</p></div><div className="teacher-orbit"><div className="orbit-core"><Icon name="star" size={28}/></div><span>01—17</span></div></section><div className="admin-metrics"><MetricCard label="등록 학생" value={dashboard.totalStudents} note="학생명단 기준"/><MetricCard label="제출 학생" value={dashboard.submittedStudents} note={`${dashboard.submissionRate}% 참여`}/><MetricCard label="평균 점수" value={dashboard.averageScore} note="전체 제출 기준"/><MetricCard label="학기" value="17주" note="포트폴리오 기간"/></div><div className="admin-grid"><section className="admin-card"><div className="admin-card-head"><div><span className="eyebrow">CLASS OVERVIEW</span><h2>반별 활동량</h2></div><span className="muted">제출 건수</span></div>{dashboard.classStats?.length?dashboard.classStats.map((r,i)=><div className="class-bar" key={`${r.학년}-${r.반}-${i}`}><div><b>{r.학년}학년 {r.반}반</b><span>{r.제출건수}건 · 평균 {r.평균점수}점</span></div><div className="bar-line"><i style={{width:`${Math.max(4,(r.제출건수/max)*100)}%`}}/></div></div>):<Empty text="아직 제출 데이터가 없습니다."/>}</section><section className="admin-card recent-admin"><div className="admin-card-head"><div><span className="eyebrow">RECENT WORK</span><h2>최근 포트폴리오</h2></div></div>{(dashboard.portfolio||[]).slice(0,6).map((r,i)=><button className="admin-student-row" key={`${r.제출ID||r.학번}-${r.주차}-${i}`} onClick={()=>onStudent(r.학번)}><Avatar name={r.이름}/><div><b>{r.이름} · {r.주차}주차</b><span>{String(r.제출내용||'').slice(0,50)||'학습 기록'}</span></div><strong>{r.점수||'—'}<small>{r.배점?` / ${r.배점}`:''}</small></strong></button>)}{!(dashboard.portfolio||[]).length&&<Empty text="최근 기록이 없습니다."/>}</section></div></div>;
+  return <div className="teacher-dashboard"><section className="teacher-welcome"><div><span className="eyebrow">TEACHER SPACE · 2026</span><h1>학생들의 학습을<br/><i>한눈에</i> 살펴보세요.</h1><p>포트폴리오 기록과 평가 흐름을 한 곳에서 관리합니다.</p></div><div className="teacher-orbit"><div className="orbit-core"><Icon name="star" size={28}/></div><span>01—17</span></div></section><div className="admin-metrics"><MetricCard label="등록 학생" value={dashboard.totalStudents} note="학생명단 기준"/><MetricCard label="제출 학생" value={dashboard.submittedStudents} note={`${dashboard.submissionRate}% 참여`}/><MetricCard label="평균 점수" value={dashboard.averageScore} note="전체 제출 기준"/><MetricCard label="미채점" value={dashboard.ungradedCount ?? '—'} note="점수 미입력 건수"/></div><div className="admin-grid"><section className="admin-card"><div className="admin-card-head"><div><span className="eyebrow">CLASS OVERVIEW</span><h2>반별 활동량</h2></div><span className="muted">제출 건수</span></div>{dashboard.classStats?.length?dashboard.classStats.map((r,i)=><div className="class-bar" key={`${r.학년}-${r.반}-${i}`}><div><b>{r.학년}학년 {r.반}반</b><span>{r.제출건수}건 · 평균 {r.평균점수}점 · 제출률 {r.제출률 ?? '—'}% · 미제출 {r.미제출자수 ?? 0}명 · 미채점 {r.미채점건수 ?? 0}건</span></div><div className="bar-line"><i style={{width:`${Math.max(4,(r.제출건수/max)*100)}%`}}/></div></div>):<Empty text="아직 제출 데이터가 없습니다."/>}</section><section className="admin-card recent-admin"><div className="admin-card-head"><div><span className="eyebrow">RECENT WORK</span><h2>최근 포트폴리오</h2></div></div>{(dashboard.portfolio||[]).slice(0,6).map((r,i)=><button className="admin-student-row" key={`${r.제출ID||r.학번}-${r.주차}-${i}`} onClick={()=>onStudent(r.학번)}><Avatar name={r.이름}/><div><b>{r.이름} · {r.주차}주차</b><span>{String(r.제출내용||'').slice(0,50)||'학습 기록'}</span></div><strong>{r.점수||'—'}<small>{r.배점?` / ${r.배점}`:''}</small></strong></button>)}{!(dashboard.portfolio||[]).length&&<Empty text="최근 기록이 없습니다."/>}</section></div></div>;
 }
 function MetricCard({label,value,note}){return <div className="admin-metric"><span>{label}</span><b>{value}</b><small>{note}</small></div>}
 function Empty({text}){return <div className="empty-mini">{text}</div>}
-function TeacherStudents({ dashboard, initialStudent = '' }) {
+function TeacherStudents({ dashboard, initialStudent = '', weeks = [], csvExport, result, onStudent }) {
   const students=dashboard.students||[]; const portfolio=dashboard.portfolio||[]; const [sid,setSid]=useState(''); const [week,setWeek]=useState(1); const [score,setScore]=useState(0); const [feedback,setFeedback]=useState('');
   const filtered=useMemo(()=>portfolio.find(r=>String(r.학번)===String(sid)&&Number(r.주차)===Number(week)),[portfolio,sid,week]);
   useEffect(()=>{if(filtered){setScore(Number(filtered.점수)||0);setFeedback(filtered.피드백||'');}else{setScore(0);setFeedback('');}},[filtered?.제출ID,sid,week]);
   useEffect(()=>{if(initialStudent)setSid(String(initialStudent));},[initialStudent]);
   const selected=students.find(s=>String(s.학번)===String(sid));
-  const save=()=>emit('teacher_grade_save',{studentId:sid,week:Number(week),score:Number(score),feedback});
-  return <div className="teacher-students"><div className="student-picker"><div><span className="eyebrow">ASSESSMENT</span><h1>학생 기록과 피드백</h1><p>학생의 제출 내용을 읽고 주차별 평가를 남겨보세요.</p></div><div className="picker-controls"><select value={sid} onChange={e=>setSid(e.target.value)}><option value="">학생 선택</option>{students.map(s=><option key={s.학번} value={s.학번}>{s.학번} · {s.이름} · {s.학년}-{s.반}</option>)}</select><select value={week} onChange={e=>setWeek(Number(e.target.value))}>{Array.from({length:17},(_,i)=><option key={i+1} value={i+1}>{i+1}주차</option>)}</select></div></div>{selected?<div className="assessment-layout"><section className="work-paper"><div className="paper-head"><Avatar name={selected.이름} large accent="cool"/><div><span>{selected.학년}학년 {selected.반}반 · {selected.학번}</span><h2>{selected.이름}의 {week}주차 기록</h2></div><span className="paper-week">W{week}</span></div>{filtered?<div className="student-answer">{filtered.제출내용||'작성 내용이 없습니다.'}</div>:<Empty text="이 학생의 해당 주차 제출 기록이 없습니다."/>}</section><aside className="assessment-card"><span className="eyebrow">TEACHER REVIEW</span><h2>평가 남기기</h2><label>점수 <small> / {filtered?.배점||10}점</small></label><input className="grade-input" type="number" min="0" max={filtered?.배점||10} value={score} onChange={e=>setScore(e.target.value)}/><label>한 줄 피드백</label><textarea value={feedback} onChange={e=>setFeedback(e.target.value)} placeholder="학생의 성장을 구체적으로 칭찬하거나 다음 학습 방향을 적어주세요."/><button className="ink-button full" onClick={save}><Icon name="check" size={17}/> 평가 저장</button></aside></div>:<div className="empty-state large">학생을 선택하면 제출 기록과 평가 영역이 나타납니다.</div>}</div>;
+  const save=()=>{ if(!sid) return; emit('teacher_grade_save',{studentId:sid,week:Number(week),score:Number(score),feedback}); };
+  const goStudent=(id)=>{ setSid(String(id)); };
+  return <div className="teacher-students"><TeacherDirectory dashboard={dashboard} weeks={weeks} csvExport={csvExport} result={result} onStudent={onStudent||goStudent} emit={emit}/><div className="student-picker"><div><span className="eyebrow">ASSESSMENT</span><h1>학생 기록과 피드백</h1><p>학생의 제출 내용을 읽고 주차별 평가를 남겨보세요. 목록에서 학번을 누르면 자동 선택됩니다.</p></div><div className="picker-controls"><select value={sid} onChange={e=>setSid(e.target.value)}><option value="">학생 선택</option>{students.map(s=><option key={s.학번} value={s.학번}>{s.학번} · {s.이름} · {s.학년}-{s.반}</option>)}</select><select value={week} onChange={e=>setWeek(Number(e.target.value))}>{Array.from({length:17},(_,i)=><option key={i+1} value={i+1}>{i+1}주차</option>)}</select></div></div>{selected?<div className="assessment-layout"><section className="work-paper"><div className="paper-head"><Avatar name={selected.이름} large accent="cool"/><div><span>{selected.학년}학년 {selected.반}반 · {selected.학번}</span><h2>{selected.이름}의 {week}주차 기록</h2></div><span className="paper-week">W{week}</span></div>{filtered?<div className="student-answer">{filtered.제출내용||'작성 내용이 없습니다.'}</div>:<Empty text="이 학생의 해당 주차 제출 기록이 없습니다. (현재 페이지에 없을 수 있습니다. 검색 후에도 없으면 미제출입니다.)"/>}</section><aside className="assessment-card"><span className="eyebrow">TEACHER REVIEW</span><h2>평가 남기기</h2><label>점수 <small> / {filtered?.배점||10}점</small></label><input className="grade-input" type="number" min="0" max={filtered?.배점||10} value={score} onChange={e=>setScore(e.target.value)}/><label>한 줄 피드백</label><textarea value={feedback} onChange={e=>setFeedback(e.target.value.slice(0,2000))} maxLength={2000} placeholder="학생의 성장을 구체적으로 칭찬하거나 다음 학습 방향을 적어주세요."/><button className="ink-button full" onClick={save} disabled={!sid}><Icon name="check" size={17}/> 평가 저장</button></aside></div>:<div className="empty-state large">학생을 선택하면 제출 기록과 평가 영역이 나타납니다.</div>}</div>;
 }
-function CsvDownload({ portfolio, students }) {
+function CsvDownload({ portfolio, students, csvExport }) {
   const headers=['학번','이름','학년','반',...Array.from({length:17},(_,i)=>`${i+1}주차`),'총점']; const map=new Map(); (students||[]).forEach(s=>{const id=String(s.학번||'');if(id)map.set(id,{학번:id,이름:s.이름||'',학년:s.학년||'',반:s.반||''});}); (portfolio||[]).forEach(r=>{const id=String(r.학번);if(!map.has(id))map.set(id,{학번:id,이름:r.이름||'',학년:r.학년||'',반:r.반||''});const item=map.get(id);item[`${r.주차}주차`]=r.점수||'';item.총점=(Number(item.총점)||0)+(Number(r.점수)||0);}); const csv=[headers,...[...map.values()].map(row=>headers.map(h=>row[h]??''))].map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const href=`data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csv)}`;
-  return <div className="export-page"><section className="export-hero"><div><span className="eyebrow">DATA EXPORT</span><h1>학습 데이터를<br/><i>가져가세요.</i></h1><p>전체 학생의 1—17주차 점수와 총점을 Excel에서 바로 열 수 있는 CSV로 내보냅니다.</p></div><div className="export-icon"><Icon name="download" size={42}/></div></section><div className="export-note"><div><b>포함 데이터</b><span>학번 · 이름 · 학년 · 반 · 1—17주차 점수 · 총점</span></div><a href={href} download="기술가정_포트폴리오_성적표.csv" className="ink-button"><Icon name="download" size={17}/> CSV 다운로드</a></div></div>;
+  const serverHref=csvExport?.csv?`data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csvExport.csv)}`:'';
+  return <div className="export-page"><section className="export-hero"><div><span className="eyebrow">DATA EXPORT</span><h1>학습 데이터를<br/><i>가져가세요.</i></h1><p>현재 필터 기준 서버 CSV(UTF-8 BOM)와 화면 기준 요약 CSV를 제공합니다. 서버 CSV는 필터 전체를 포함합니다.</p></div><div className="export-icon"><Icon name="download" size={42}/></div></section><div className="export-note"><div><b>서버 CSV {csvExport?`· ${csvExport.count}건 · ${csvExport.generatedAt||''}`:'· 필터 기준'}</b><span>학번 · 이름 · 학년 · 반 · 주차 · 점수 · 배점 · 피드백 · 제출일시</span></div><div className="ws-row"><button className="ws-btn primary" onClick={()=>emit('teacher_export_csv',{})}>서버 CSV 준비</button>{serverHref?<a href={serverHref} download={csvExport.filename||'포트폴리오_성적표.csv'} className="ink-button"><Icon name="download" size={17}/> 서버 CSV 다운로드</a>:null}</div></div><div className="export-note"><div><b>화면 요약 CSV</b><span>학번 · 이름 · 학년 · 반 · 1—17주차 점수 · 총점 (현재 페이지 기준이 아닌 학생명단+현재 페이지 합산)</span></div><a href={href} download="기술가정_포트폴리오_성적표.csv" className="ink-button"><Icon name="download" size={17}/> 요약 CSV 다운로드</a></div></div>;
 }
 /* ===== 주차별 학습지 및 포트폴리오 문제 업로드/관리 (WorksheetUploader 번들) =====
  * frontend/src/admin/WorksheetUploader.jsx 와 동일한 코드의 App.jsx 내장본.
@@ -561,6 +609,21 @@ function TeacherGames({ weeks, configs, records }) {
   const current = { week: Number(week), enabled, type: gtype, title, desc, content };
   const weekRecs = (records || []).filter((r) => Number(r.주차) === Number(week));
   const goal = (weeks || []).find((w) => Number(w.주차) === Number(week));
+  const storedType = String(((all.find((x) => Number(x.week) === Number(week)) || {}).type) || '');
+  const storedIsVisual = storedType.startsWith('visual:');
+  const embedUrlError = validateEmbedUrl(embedUrl);
+  const canSaveGame = !embedUrlError && String(title || '').trim().length > 0 && !storedIsVisual;
+  if (storedIsVisual) return <div className="ws-wrap">
+    <header className="ws-top">
+      <div><span className="eyebrow">WEEKLY GAME · ADMIN</span><h1>주차별 게임 관리</h1></div>
+      <div className="ws-top-actions">
+        <select value={week} onChange={(e) => setWeek(Number(e.target.value))}>
+          {Array.from({ length: 17 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}주차</option>)}
+        </select>
+      </div>
+    </header>
+    <section className="ws-card"><b>{week}주차에는 실습(시각화) 모듈({VISUAL_LABEL[storedType] || storedType})이 설정되어 있습니다.</b><p className="ws-hint">게임 저장은 실습 설정을 덮어쓰지 않도록 막혀 있습니다. 변경은 실습 탭에서 해주세요.</p><VisualPlayer config={(all.find((x) => Number(x.week) === Number(week)) || {})} onLog={() => {}} /></section>
+  </div>;
   return <div className="ws-wrap">
     <header className="ws-top">
       <div><span className="eyebrow">WEEKLY GAME · ADMIN</span><h1>주차별 게임 관리</h1></div>
@@ -570,7 +633,7 @@ function TeacherGames({ weeks, configs, records }) {
         </select>
         <label className="ws-check gm-switch"><input type="checkbox" checked={enabled} onChange={(e) => { setEnabled(e.target.checked); emit('teacher_game_toggle', { week: Number(week), enabled: e.target.checked }); }} />{enabled ? '활성화' : '비활성화'}</label>
         <button className={preview ? 'ws-btn' : 'ws-btn primary'} onClick={() => setPreview(!preview)}>{preview ? '편집으로' : '미리보기'}</button>
-        <button className="ws-btn primary" onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
+        <button className="ws-btn primary" disabled={!canSaveGame} title={embedUrlError || ''} onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
       </div>
     </header>
     {!preview ? <>
@@ -607,8 +670,10 @@ function TeacherGames({ weeks, configs, records }) {
         <button className="ws-btn" onClick={() => setPairs([...pairs, { a: '', b: '' }])}>+ 카드 쌍 추가</button>
       </section>}
       {gtype === 'embed' && <section className="ws-card">
-        <label>외부 게임 URL (iframe)<input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." /></label>
+        <label>외부 게임 URL (iframe, https만)<input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." /></label>
+        {embedUrlError ? <div className="empty-mini">{embedUrlError}</div> : null}
         <label>또는 직접 HTML 코드<textarea value={embedHtml} onChange={(e) => setEmbedHtml(e.target.value)} placeholder="<html>... 점수 전송: postMessage({source:'external-game', score, maxScore})" rows={6} /></label>
+        <div className="empty-mini">iframe은 sandbox로 격리되며, 교사 입력 HTML만 허용됩니다.</div>
       </section>}
       <section className="ws-card">
         <b>{week}주차 기록 ({weekRecs.length}명)</b>
@@ -625,7 +690,7 @@ function TeacherGames({ weeks, configs, records }) {
 function TeacherApp({ args }) {
   const dashboard=args.teacher||{students:[],portfolio:[],classStats:[]}; const [active,setActive]=useState('dashboard'); const [studentJump,setStudentJump]=useState('');
   const goStudent=(sid)=>{setStudentJump(String(sid));setActive('students');};
-  return <div className="app-frame"><SideRail student={{이름:'관리자'}} teacher active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>TEACHER SPACE</span><b>{active==='dashboard'?'종합 현황':active==='worksheets'?'학습지 관리':active==='games'?'주차별 게임':active==='students'?'학생 평가':'CSV 내보내기'}</b></div><div className="topbar-actions"><button className="refresh-button" onClick={()=>emit('teacher_refresh')}><Icon name="refresh" size={17}/><span>새로고침</span></button><button className="top-avatar" onClick={()=>emit('logout')}><Avatar name="T" accent="cool"/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='dashboard'&&<TeacherDashboard dashboard={dashboard} onStudent={goStudent}/>} {active==='students'&&<TeacherStudents dashboard={dashboard} initialStudent={studentJump}/>} {active==='worksheets'&&<WorksheetUploader weeks={args.weeks||[]} initial={args.worksheet||null} uploadResult={args.uploadResult||null}/>} {active==='games'&&<TeacherGames weeks={args.weeks||[]} configs={(args.games&&args.games.configs)||[]} records={(args.games&&args.games.records)||[]}/>} {active==='csv'&&<CsvDownload portfolio={dashboard.portfolio||[]} students={dashboard.students||[]}/>}</div></main><MobileNav active={active} onChange={setActive} teacher/></div>;
+  return <div className="app-frame"><SideRail student={{이름:'관리자'}} teacher active={active} onChange={setActive}/><main className="main-canvas"><header className="topbar"><div className="mobile-brand"><div className="brand-mark small">TH</div><b>TECH · HOME</b></div><div className="topbar-context"><span>TEACHER SPACE</span><b>{active==='dashboard'?'종합 현황':active==='worksheets'?'학습지 관리':active==='games'?'주차별 게임':active==='visual'?'주차별 실습':active==='students'?'학생 평가':'CSV 내보내기'}</b></div><div className="topbar-actions"><button className="refresh-button" onClick={()=>emit('teacher_refresh')}><Icon name="refresh" size={17}/><span>새로고침</span></button><button className="top-avatar" onClick={()=>emit('logout')}><Avatar name="T" accent="cool"/></button></div></header><Flash flash={args.flash}/><div className="content-wrap">{active==='dashboard'&&<TeacherDashboard dashboard={dashboard} onStudent={goStudent}/>} {active==='students'&&<TeacherStudents dashboard={dashboard} initialStudent={studentJump} weeks={args.weeks||[]} csvExport={args.csvExport||null} result={args.result||null} onStudent={goStudent}/>} {active==='worksheets'&&<WorksheetUploader weeks={args.weeks||[]} initial={args.worksheet||null} uploadResult={args.uploadResult||null}/>} {active==='games'&&<TeacherGames weeks={args.weeks||[]} configs={(args.games&&args.games.configs)||[]} records={(args.games&&args.games.records)||[]}/>} {active==='visual'&&<TeacherVisual weeks={args.weeks||[]} configs={(args.games&&args.games.configs)||[]} records={(args.games&&args.games.records)||[]} emit={emit}/>} {active==='csv'&&<CsvDownload portfolio={dashboard.portfolio||[]} students={dashboard.students||[]} csvExport={args.csvExport||null}/>}</div></main><MobileNav active={active} onChange={setActive} teacher/></div>;
 }
 function App({ args = DEFAULT_ARGS }) {
   const streamlitArgs = args || DEFAULT_ARGS;

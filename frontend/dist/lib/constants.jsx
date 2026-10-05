@@ -1,0 +1,9 @@
+/* TECH·HOME 공용 상수 (src/lib/constants.js와 동기화) */
+window.__TECH_CONSTANTS__ = window.__TECH_CONSTANTS__ || {
+  MIN_WEEK: 1,
+  MAX_WEEK: 17,
+  MAX_CONTENT_LENGTH: 4000,
+  MAX_FEEDBACK_LENGTH: 2000,
+  MAX_STUDENT_ID_LENGTH: 8,
+  MAX_GAME_SCORE: 10000
+};

@@ -39,36 +39,40 @@ def _save_local(state: dict[str, Any]) -> None:
         pass
 
 
-def _ensure_sheet(sheets):
-    from backend.sheets import _with_backoff
+def _ensure_sheet(sheets, book=None):
+    from backend.sheets import _with_backoff, get_book_from_sheets
 
-    ws0 = next(iter(sheets.values()))
-    book = ws0.spreadsheet
+    target_book = book if book is not None else get_book_from_sheets(sheets)
     try:
-        ws = book.worksheet(SHEET)
+        ws = target_book.worksheet(SHEET)
     except Exception:
-        ws = book.add_worksheet(title=SHEET, rows=500, cols=len(HEADERS))
+        ws = target_book.add_worksheet(title=SHEET, rows=500, cols=len(HEADERS))
     cur = _with_backoff(lambda: ws.row_values(1))
     if not cur:
         _with_backoff(lambda: ws.update("A1", [HEADERS]))
     return ws
 
 
-def submit_ds_result(sheets, student: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+def submit_ds_result(sheets, student: dict[str, Any], payload: dict[str, Any], book=None) -> dict[str, Any]:
     """DS 퀴즈 해결 1건을 upsert. sheets가 없으면 로컬 JSON에 저장."""
     unit = str(payload.get("unitId", "")).strip()
     if unit not in DS_UNITS:
         raise ValueError(f"알 수 없는 단원입니다: {unit}")
-    score = int(payload.get("score", 0) or 0)
-    max_score = int(payload.get("maxScore", score) or score)
-    record_id = str(payload.get("recordId", "")).strip() or f"ds-{student.get('학번', '')}-{unit}"
+    try:
+        score = int(float(str(payload.get("score", 0)).strip() if isinstance(payload.get("score"), str) else payload.get("score", 0)) or 0)
+        max_score = int(float(str(payload.get("maxScore", score)).strip() if isinstance(payload.get("maxScore"), str) else payload.get("maxScore", score)) or score)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("점수는 숫자여야 합니다.") from exc
+    if not (0 <= score <= 10000 and 0 <= max_score <= 10000):
+        raise ValueError("점수 범위가 올바르지 않습니다.")
+    record_id = str(payload.get("recordId", "")).strip()[:128] or f"ds-{student.get('학번', '')}-{unit}"
     stamped = now_iso()
 
     # 1) Sheets 시도
     try:
         from backend.sheets import _with_backoff
 
-        ws = _ensure_sheet(sheets)
+        ws = _ensure_sheet(sheets, book=book)
         values = _with_backoff(lambda: ws.get_all_values())
         row_no = None
         for i, r in enumerate(values[1:], start=2):
@@ -76,9 +80,11 @@ def submit_ds_result(sheets, student: dict[str, Any], payload: dict[str, Any]) -
                 row_no = i
                 break
         if row_no:
-            _with_backoff(lambda: ws.update_cell(row_no, 5, score))
-            _with_backoff(lambda: ws.update_cell(row_no, 6, max_score))
-            _with_backoff(lambda: ws.update_cell(row_no, 7, stamped))
+            _with_backoff(lambda: ws.batch_update([
+                {"range": f"E{row_no}", "values": [[score]]},
+                {"range": f"F{row_no}", "values": [[max_score]]},
+                {"range": f"G{row_no}", "values": [[stamped]]},
+            ], value_input_option="USER_ENTERED"))
         else:
             _with_backoff(
                 lambda: ws.append_row(

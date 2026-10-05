@@ -11,30 +11,32 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from backend.sheets import _with_backoff
+from backend.sheets import _with_backoff, get_book_from_sheets
 
 SHEET = "학습지"
 HEADERS = ["주차", "제목", "단원명", "안내문구", "공개여부", "문제JSON", "업데이트일시"]
 
 
-def ensure_ws(sheets) -> Any:
-    ws0 = next(iter(sheets.values()))
-    book = ws0.spreadsheet
+def ensure_ws(sheets, book=None) -> Any:
+    target_book = book if book is not None else get_book_from_sheets(sheets)
     try:
-        ws = book.worksheet(SHEET)
+        ws = target_book.worksheet(SHEET)
     except Exception:
-        ws = book.add_worksheet(title=SHEET, rows=100, cols=len(HEADERS))
+        ws = target_book.add_worksheet(title=SHEET, rows=100, cols=len(HEADERS))
     cur = _with_backoff(lambda: ws.row_values(1))
     if not cur:
         _with_backoff(lambda: ws.update("A1", [HEADERS]))
     return ws
 
 
-def load_worksheet(sheets, week: int) -> dict[str, Any]:
-    ws = ensure_ws(sheets)
+def load_worksheet(sheets, week: int, book=None) -> dict[str, Any]:
+    from backend.validation import validate_week
+
+    week_no = validate_week(week)
+    ws = ensure_ws(sheets, book=book)
     values = _with_backoff(lambda: ws.get_all_values())
     for r in values[1:]:
-        if r and str(r[0]).strip() == str(week):
+        if r and str(r[0]).strip() == str(week_no):
             raw = r[5] if len(r) > 5 else "[]"
             try:
                 questions = json.loads(raw or "[]")
@@ -49,21 +51,31 @@ def load_worksheet(sheets, week: int) -> dict[str, Any]:
                 "questions": questions,
                 "updatedAt": r[6] if len(r) > 6 else "",
             }
-    return {"week": int(week), "title": "", "unit": "", "guide": "",
+    return {"week": int(week_no), "title": "", "unit": "", "guide": "",
             "published": True, "questions": [], "updatedAt": ""}
 
 
-def save_worksheet(sheets, data: dict[str, Any]) -> str:
-    ws = ensure_ws(sheets)
-    week = int(data["week"])
+def save_worksheet(sheets, data: dict[str, Any], book=None) -> str:
+    from backend.validation import validate_week
+
+    ws = ensure_ws(sheets, book=book)
+    week = validate_week(data.get("week", 0))
+    title = str(data.get("title", ""))[:200]
+    unit = str(data.get("unit", ""))[:200]
+    guide = str(data.get("guide", ""))[:4000]
+    questions = data.get("questions", [])
+    if not isinstance(questions, list):
+        raise ValueError("학습지 문제 형식이 올바르지 않습니다.")
+    if len(questions) > 100:
+        raise ValueError("문제는 최대 100개까지 가능합니다.")
     now = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     row = [
         str(week),
-        str(data.get("title", "")),
-        str(data.get("unit", "")),
-        str(data.get("guide", "")),
+        title,
+        unit,
+        guide,
         "Y" if data.get("published", True) else "N",
-        json.dumps(data.get("questions", []), ensure_ascii=False),
+        json.dumps(questions, ensure_ascii=False)[:50000],
         now,
     ]
     values = _with_backoff(lambda: ws.get_all_values())

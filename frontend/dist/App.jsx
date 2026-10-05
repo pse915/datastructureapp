@@ -1,5 +1,12 @@
 const { useEffect, useMemo, useReducer, useRef, useState } = React;
 
+// P0: lib/constants.jsx + lib/validation.jsx와 동기화. 단독 로드에도 동작하도록 폴백 포함.
+// 보안: 제출내용/피드백은 항상 {value} 텍스트로 렌더링, dangerouslySetInnerHTML 사용 금지.
+const __TECH_CONSTANTS__ = window.__TECH_CONSTANTS__ || { MAX_CONTENT_LENGTH: 4000 };
+const __TECH_VALIDATION__ = window.__TECH_VALIDATION__ || {
+  validateContent: (c) => (String(c || '').trim() ? '' : 'empty'),
+};
+
 const DEFAULT_ARGS = {
   role: null,
   student: null,
@@ -11,6 +18,7 @@ const DEFAULT_ARGS = {
   worksheet: null,
   uploadResult: null,
   games: null,
+  csvExport: null,
 };
 
 window.__streamlitArgs = window.__streamlitArgs || DEFAULT_ARGS;
@@ -67,6 +75,18 @@ function makeEventId(prefix = 'event') {
 
 function emit(action, payload = {}) {
   Streamlit.setComponentValue({ action, eventId: makeEventId(action), ...payload });
+}
+window.__TECH_EMIT__ = emit;
+
+function isVisualConfig(c) {
+  return !!c && String(c.type || '').startsWith('visual:');
+}
+function splitVisual(list) {
+  const src = list || [];
+  return {
+    games: src.filter((c) => !isVisualConfig(c)),
+    visuals: src.filter((c) => isVisualConfig(c)),
+  };
 }
 
 function Icon({ name, size = 21, stroke = 1.9 }) {
@@ -177,7 +197,9 @@ function Login({ flash }) {
   const [studentId, setStudentId] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
   const [pending, setPending] = useState('');
-  const canStudent = studentId.trim().length > 0;
+  const __V__ = window.__TECH_VALIDATION__ || {};
+  const sidErr = __V__.validateStudentId ? __V__.validateStudentId(studentId.trim()) : '';
+  const canStudent = studentId.trim().length > 0 && !sidErr;
 
   useEffect(() => {
     if (flash) setPending('');
@@ -187,6 +209,7 @@ function Login({ flash }) {
     e?.preventDefault?.();
     const sid = studentId.trim();
     if (!sid || pending) return;
+    if (__V__.validateStudentId && __V__.validateStudentId(sid)) return;
     setPending('student');
     emit('student_login', { studentId: sid });
     setTimeout(() => setPending(''), 3000);
@@ -307,6 +330,7 @@ function SideRail({ student, active, onChange, teacher = false }) {
     ? [
         ['dashboard', 'home', '홈'],
         ['games', 'star', '게임'],
+        ['visual', 'bookmark', '실습'],
         ['weeks', 'plus', '주차'],
         ['worksheets', 'plus', '학습지'],
         ['students', 'grid', '학생'],
@@ -316,6 +340,7 @@ function SideRail({ student, active, onChange, teacher = false }) {
         ['home', 'home', '홈'],
         ['portfolio', 'grid', '포트폴리오'],
         ['games', 'star', '게임'],
+        ['visual', 'bookmark', '실습'],
         ['summary', 'heart', '나의 기록'],
       ];
   return (
@@ -357,6 +382,7 @@ function MobileNav({ active, onChange, teacher = false }) {
     ? [
         ['dashboard', 'home', '홈'],
         ['games', 'star', '게임'],
+        ['visual', 'bookmark', '실습'],
         ['weeks', 'plus', '주차'],
         ['worksheets', 'plus', '학습지'],
         ['students', 'grid', '학생'],
@@ -366,6 +392,7 @@ function MobileNav({ active, onChange, teacher = false }) {
         ['home', 'home', '홈'],
         ['portfolio', 'grid', '포트폴리오'],
         ['games', 'star', '게임'],
+        ['visual', 'bookmark', '실습'],
         ['summary', 'heart', '나의 기록'],
       ];
   return (
@@ -516,6 +543,36 @@ function StudentHome({ student, portfolio, weeks, onPortfolio }) {
   );
 }
 
+function AutoGradeResult({ autoGrade }) {
+  if (!autoGrade || !autoGrade.graded) return null;
+  const items = autoGrade.feedback || [];
+  const wrong = items.filter((f) => !f.ok);
+  return (
+    <div className="side-card auto-grade-card">
+      <span className="eyebrow">AUTO GRADE</span>
+      <strong>
+        {autoGrade.score}
+        <small> / {autoGrade.maxScore}</small>
+      </strong>
+      <p>
+        제출 직후 자동채점 결과입니다. 교사가 확정하면 교사 점수로 바뀝니다.
+        {wrong.length ? ` (복습 ${wrong.length}개)` : ' (모두 정답)'}
+      </p>
+      <div className="auto-grade-list">
+        {items.map((f, i) => (
+          <div key={`${f.key}-${i}`} className={`auto-grade-row ${f.ok ? 'ok' : 'wrong'}`}>
+            <span>{f.ok ? '○' : '●'}</span>
+            <div>
+              <b>{f.key}</b>
+              <small>{f.text}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PortfolioPage({
   weeks,
   portfolio,
@@ -525,9 +582,14 @@ function PortfolioPage({
   setContent,
   submitting,
   onSubmit,
+  answers,
+  setAnswer,
+  autoGrade,
 }) {
   const week = weeks.find((w) => Number(w.주차) === Number(selectedWeek));
   const record = portfolio.find((r) => Number(r.주차) === Number(selectedWeek));
+  const rubricQs = (week && week.루브릭 && week.루브릭.questions) || [];
+  const showAuto = autoGrade && autoGrade.graded && Number(autoGrade.week) === Number(selectedWeek);
   return (
     <div className="portfolio-page">
       <WeekStories weeks={weeks} portfolio={portfolio} selected={Number(selectedWeek)} onSelect={setSelectedWeek} />
@@ -546,19 +608,40 @@ function PortfolioPage({
               <span>ACTIVITY PROMPT</span>
               <p>{week?.활동지질문 || '이번 주 활동에서 배운 점과 나의 생각을 자유롭게 기록해보세요.'}</p>
             </div>
+            {rubricQs.length ? (
+              <div className="question-block">
+                <span>KEY ANSWERS (자동채점)</span>
+                {rubricQs.map((q) => (
+                  <label key={q.key} style={{ display: 'block', marginTop: 6 }}>
+                    {q.key}
+                    {q.hint ? ` · ${q.hint}` : ''}
+                    <input
+                      className="text-input"
+                      value={(answers && answers[q.key]) || ''}
+                      onChange={(e) => setAnswer && setAnswer(q.key, e.target.value)}
+                      placeholder="핵심 답안을 입력하세요"
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : null}
             <label>MY LEARNING NOTE</label>
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => setContent(String(e.target.value).slice(0, (__TECH_CONSTANTS__.MAX_CONTENT_LENGTH || 4000)))}
+              maxLength={__TECH_CONSTANTS__.MAX_CONTENT_LENGTH || 4000}
               placeholder="오늘 배운 것, 직접 해본 것, 어려웠던 점, 새롭게 생각한 것을 기록하세요."
             />
+            {showAuto ? <AutoGradeResult autoGrade={autoGrade} /> : null}
             <div className="journal-footer">
               <span>
+                {String(content || '').trim().length}/{__TECH_CONSTANTS__.MAX_CONTENT_LENGTH || 4000}자
                 {record?.제출
-                  ? `마지막 저장 ${record.수정일시 || record.제출일시 || '-'}`
-                  : '아직 제출하지 않았어요.'}
+                  ? ` · 마지막 저장 ${record.수정일시 || record.제출일시 || '-'}`
+                  : ' · 아직 제출하지 않았어요.'}
+                {record?.채점상태 ? ` · ${record.채점상태}` : ''}
               </span>
-              <button className="ink-button" disabled={submitting || !content.trim()} onClick={onSubmit}>
+              <button className="ink-button" disabled={submitting || !content.trim() || !!__TECH_VALIDATION__.validateContent(content)} onClick={onSubmit}>
                 {submitting ? '저장 중…' : record?.제출 ? '수정하여 제출' : '기록 제출'}{' '}
                 <Icon name="arrow" size={17} />
               </button>
@@ -572,7 +655,13 @@ function PortfolioPage({
               {record?.점수 || '—'}
               <small> / {record?.배점 || week?.배점 || 0}</small>
             </strong>
-            <p>{record?.점수 ? '교사가 채점한 결과입니다.' : '제출 후 교사 평가가 표시됩니다.'}</p>
+            <p>
+              {record?.채점상태 === '교사확정'
+                ? '교사가 확정한 결과입니다.'
+                : record?.점수
+                  ? '자동채점 결과입니다. 교사 확정 전입니다.'
+                  : '제출 후 자동채점과 교사 평가가 표시됩니다.'}
+            </p>
           </div>
           <div className="side-card feedback-side">
             <span className="eyebrow">TEACHER NOTE</span>
@@ -588,16 +677,48 @@ function PortfolioPage({
               </>
             )}
           </div>
+          {(record?.자동문항 || []).filter((m) => !m.ok).length ? (
+            <div className="side-card auto-grade-card">
+              <span className="eyebrow">REVIEW NOTE</span>
+              <h3>복습할 문항 {(record.자동문항 || []).filter((m) => !m.ok).length}개</h3>
+              {(record.자동문항 || [])
+                .filter((m) => !m.ok)
+                .map((m, i) => (
+                  <p key={i}>
+                    <b>{m.key}</b> · {m.text}
+                  </p>
+                ))}
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>
   );
 }
 
-function SummaryPage({ portfolio }) {
+function SummaryPage({ portfolio, studentId }) {
   const total = portfolio.reduce((s, r) => s + (Number(r.점수) || 0), 0);
   const max = portfolio.reduce((s, r) => s + (Number(r.배점) || 0), 0);
   const done = portfolio.filter((r) => r.제출).length;
+  const [reviewFilter, setReviewFilter] = useState('all');
+  const wrongLocal = useMemo(() => {
+    try {
+      const WN = window.__TECH_WRONGNOTE__;
+      return WN ? WN.load(studentId) : [];
+    } catch (_) {
+      return [];
+    }
+  }, [studentId, portfolio.length]);
+  const rows17 = Array.from({ length: 17 }, (_, i) => i + 1).map((no) => ({
+    no,
+    r: portfolio.find((x) => Number(x.주차) === no),
+  }));
+  const visible = rows17.filter(({ r }) => {
+    if (reviewFilter === 'review')
+      return !r || !r.제출 || Number(r.오답수 || 0) > 0 || wrongLocal.some((w) => Number(w.week) === Number(r.주차));
+    if (reviewFilter === 'done') return r && r.제출 && Number(r.오답수 || 0) === 0;
+    return true;
+  });
   return (
     <div className="summary-page">
       <div className="summary-hero">
@@ -628,21 +749,38 @@ function SummaryPage({ portfolio }) {
           <small>%</small>
         </div>
       </div>
+      <div className="ws-row" style={{ gap: 8, margin: '8px 0' }}>
+        <span className="eyebrow">REVIEW FILTER</span>
+        <button className={reviewFilter === 'all' ? 'ws-btn primary' : 'ws-btn'} onClick={() => setReviewFilter('all')}>
+          전체
+        </button>
+        <button className={reviewFilter === 'review' ? 'ws-btn primary' : 'ws-btn'} onClick={() => setReviewFilter('review')}>
+          복습필요
+        </button>
+        <button className={reviewFilter === 'done' ? 'ws-btn primary' : 'ws-btn'} onClick={() => setReviewFilter('done')}>
+          완료
+        </button>
+      </div>
       <section className="archive-list">
-        {Array.from({ length: 17 }, (_, i) => i + 1).map((no) => {
-          const r = portfolio.find((x) => Number(x.주차) === no);
+        {visible.map(({ no, r }) => {
+          const miss = !r || !r.제출;
           return (
             <div className={`archive-row ${r?.제출 ? 'done' : ''}`} key={no}>
               <div className="archive-week">{String(no).padStart(2, '0')}</div>
               <div className="archive-content">
                 <b>{r?.제출내용 ? String(r.제출내용).slice(0, 90) : '아직 기록하지 않았습니다.'}</b>
-                <span>{r?.피드백 || '학습 기록을 제출하면 교사 피드백이 표시됩니다.'}</span>
+                <span>
+                  {Number(r?.오답수 || 0) > 0 ? `복습 ${r.오답수}개 · ` : ''}
+                  {r?.피드백 || '학습 기록을 제출하면 교사 피드백이 표시됩니다.'}
+                </span>
               </div>
               <div className="archive-score">
                 {r?.점수 || '—'}
                 <small>{r?.점수 ? ` / ${r.배점}` : ''}</small>
               </div>
-              <div className={`status-pill ${r?.제출 ? 'done' : ''}`}>{r?.제출 ? '제출완료' : '미제출'}</div>
+              <div className={`status-pill ${r?.제출 ? 'done' : ''}`}>
+                {miss ? '미제출' : Number(r.오답수) > 0 ? '복습필요' : '제출완료'}
+              </div>
             </div>
           );
         })}
@@ -659,8 +797,14 @@ function StudentApp({ args }) {
   const [selectedWeek, setSelectedWeek] = useState(Number(weeks[0]?.주차 || 1));
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [answers, setAnswers] = useState({});
+  const setAnswer = (k, v) => setAnswers((p) => ({ ...p, [k]: String(v).slice(0, 2000) }));
   const pendingSubmissionId = useRef(null);
   const record = portfolio.find((r) => Number(r.주차) === Number(selectedWeek));
+  const autoGrade =
+    args.result && args.result.autoGrade && Number(args.result.autoGrade.week) === Number(selectedWeek)
+      ? args.result.autoGrade
+      : null;
 
   useEffect(() => {
     setContent(record?.제출내용 || '');
@@ -677,6 +821,18 @@ function StudentApp({ args }) {
     }
   }, [args.result?.submissionId, args.flash]);
 
+  useEffect(() => {
+    if (!autoGrade || !autoGrade.graded) return;
+    try {
+      const WN = window.__TECH_WRONGNOTE__;
+      if (!WN || !student.학번) return;
+      const wrong = (autoGrade.feedback || [])
+        .filter((f) => !f.ok)
+        .map((f) => ({ week: Number(selectedWeek), key: String(f.key), text: String(f.text || '').slice(0, 200), at: new Date().toISOString() }));
+      if (wrong.length) WN.save(student.학번, wrong);
+    } catch (_) {}
+  }, [autoGrade && autoGrade.score, autoGrade && JSON.stringify((autoGrade.feedback || []).map((f) => f.key + String(f.ok)))]);
+
   const goPortfolio = (week) => {
     if (week) setSelectedWeek(Number(week));
     setActive('portfolio');
@@ -689,9 +845,19 @@ function StudentApp({ args }) {
     emit('student_submit', {
       week: Number(selectedWeek),
       content,
+      answers,
       submissionId: pendingSubmissionId.current,
     });
   };
+
+  const gameList = ((args.games && args.games.active) || []).filter((c) => !isVisualConfig(c));
+  const visualList = ((args.games && args.games.active) || []).filter((c) => isVisualConfig(c));
+  const visualRecords = ((args.games && args.games.records) || []).filter((r) =>
+    String(r.게임유형 || '').startsWith('visual:')
+  );
+  const gameRecords = ((args.games && args.games.records) || []).filter(
+    (r) => !String(r.게임유형 || '').startsWith('visual:')
+  );
 
   return (
     <div className="app-frame">
@@ -709,9 +875,11 @@ function StudentApp({ args }) {
                 ? '오늘의 기록'
                 : active === 'games'
                   ? '주차별 게임'
-                  : active === 'portfolio'
-                  ? `${selectedWeek}주차 포트폴리오`
-                  : '나의 아카이브'}
+                  : active === 'visual'
+                    ? '주차별 실습'
+                    : active === 'portfolio'
+                    ? `${selectedWeek}주차 포트폴리오`
+                    : '나의 아카이브'}
             </b>
           </div>
           <div className="topbar-actions">
@@ -730,17 +898,29 @@ function StudentApp({ args }) {
               weeks={weeks}
               portfolio={portfolio}
               selectedWeek={selectedWeek}
-              setSelectedWeek={setSelectedWeek}
+              setSelectedWeek={(w) => {
+                setSelectedWeek(Number(w));
+                setAnswers({});
+              }}
               content={content}
               setContent={setContent}
               submitting={submitting}
               onSubmit={submit}
+              answers={answers}
+              setAnswer={setAnswer}
+              autoGrade={autoGrade}
             />
           )}
           {active === 'games' && (
-            <StudentGames games={(args.games && args.games.active) || []} myRecords={(args.games && args.games.records) || []} />
+            <StudentGames games={gameList} myRecords={gameRecords} />
           )}
-          {active === 'summary' && <SummaryPage portfolio={portfolio} />}
+          {active === 'visual' &&
+            (typeof StudentVisual !== 'undefined' ? (
+              <StudentVisual visuals={visualList} myRecords={visualRecords} emit={emit} />
+            ) : (
+              <div className="empty-mini">실습 모듈을 불러오지 못했습니다. 새로고침해 주세요.</div>
+            ))}
+          {active === 'summary' && <SummaryPage portfolio={portfolio} studentId={student.학번} />}
         </div>
       </main>
       <MobileNav active={active} onChange={setActive} />
@@ -773,7 +953,7 @@ function TeacherDashboard({ dashboard, onStudent }) {
         <MetricCard label="등록 학생" value={dashboard.totalStudents} note="학생명단 기준" />
         <MetricCard label="제출 학생" value={dashboard.submittedStudents} note={`${dashboard.submissionRate}% 참여`} />
         <MetricCard label="평균 점수" value={dashboard.averageScore} note="전체 제출 기준" />
-        <MetricCard label="학기" value="17주" note="포트폴리오 기간" />
+        <MetricCard label="미채점" value={dashboard.ungradedCount ?? '—'} note="점수 미입력 건수" />
       </div>
       <div className="admin-grid">
         <section className="admin-card">
@@ -792,7 +972,7 @@ function TeacherDashboard({ dashboard, onStudent }) {
                     {r.학년}학년 {r.반}반
                   </b>
                   <span>
-                    {r.제출건수}건 · 평균 {r.평균점수}점
+                    {r.제출건수}건 · 평균 {r.평균점수}점 · 제출률 {r.제출률 ?? '—'}% · 미제출 {r.미제출자수 ?? 0}명 · 미채점 {r.미채점건수 ?? 0}건
                   </span>
                 </div>
                 <div className="bar-line">
@@ -851,7 +1031,7 @@ function Empty({ text }) {
   return <div className="empty-mini">{text}</div>;
 }
 
-function TeacherStudents({ dashboard, initialStudent = '' }) {
+function TeacherStudents({ dashboard, initialStudent = '', weeks = [], csvExport, result, onStudent }) {
   const students = dashboard.students || [];
   const portfolio = dashboard.portfolio || [];
   const [sid, setSid] = useState('');
@@ -875,20 +1055,26 @@ function TeacherStudents({ dashboard, initialStudent = '' }) {
     if (initialStudent) setSid(String(initialStudent));
   }, [initialStudent]);
   const selected = students.find((s) => String(s.학번) === String(sid));
-  const save = () =>
+  const save = () => {
+    if (!sid) return;
     emit('teacher_grade_save', {
       studentId: sid,
       week: Number(week),
       score: Number(score),
       feedback,
     });
+  };
+  const goStudent = (id) => setSid(String(id));
   return (
     <div className="teacher-students">
+      {typeof TeacherDirectory !== 'undefined' ? (
+        <TeacherDirectory dashboard={dashboard} weeks={weeks} csvExport={csvExport} result={result} onStudent={onStudent || goStudent} emit={emit} />
+      ) : null}
       <div className="student-picker">
         <div>
           <span className="eyebrow">ASSESSMENT</span>
           <h1>학생 기록과 피드백</h1>
-          <p>학생의 제출 내용을 읽고 주차별 평가를 남겨보세요.</p>
+          <p>학생의 제출 내용을 읽고 주차별 평가를 남겨보세요. 목록에서 학번을 누르면 자동 선택됩니다.</p>
         </div>
         <div className="picker-controls">
           <select value={sid} onChange={(e) => setSid(e.target.value)}>
@@ -926,7 +1112,7 @@ function TeacherStudents({ dashboard, initialStudent = '' }) {
             {filtered ? (
               <div className="student-answer">{filtered.제출내용 || '작성 내용이 없습니다.'}</div>
             ) : (
-              <Empty text="이 학생의 해당 주차 제출 기록이 없습니다." />
+              <Empty text="이 학생의 해당 주차 제출 기록이 없습니다. (현재 페이지에 없을 수 있습니다. 검색 후에도 없으면 미제출입니다.)" />
             )}
           </section>
           <aside className="assessment-card">
@@ -946,10 +1132,11 @@ function TeacherStudents({ dashboard, initialStudent = '' }) {
             <label>한 줄 피드백</label>
             <textarea
               value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
+              onChange={(e) => setFeedback(String(e.target.value).slice(0, 2000))}
+              maxLength={2000}
               placeholder="학생의 성장을 구체적으로 칭찬하거나 다음 학습 방향을 적어주세요."
             />
-            <button className="ink-button full" onClick={save}>
+            <button className="ink-button full" onClick={save} disabled={!sid}>
               <Icon name="check" size={17} /> 평가 저장
             </button>
           </aside>
@@ -977,6 +1164,8 @@ function TeacherWeeks({ weeks, flash }) {
   const [published, setPublished] = useState('Y');
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [rubricText, setRubricText] = useState('');
+  const [rubricError, setRubricError] = useState('');
 
   useEffect(() => {
     const w = byWeek[Number(week)];
@@ -985,6 +1174,8 @@ function TeacherWeeks({ weeks, flash }) {
     setScore(Number(w?.배점) || 10);
     setPublished(String(w?.공개여부 || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
     setFile(null);
+    setRubricText(w?.루브릭JSON || '');
+    setRubricError('');
   }, [week, byWeek]);
 
   useEffect(() => {
@@ -998,6 +1189,17 @@ function TeacherWeeks({ weeks, flash }) {
 
   const save = () => {
     if (saving) return;
+    const rt = (rubricText || '').trim();
+    if (rt) {
+      try {
+        const parsed = JSON.parse(rt);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('object required');
+      } catch (_) {
+        setRubricError('루브릭JSON이 올바르지 않습니다. 비워두면 기존 루브릭이 유지됩니다.');
+        return;
+      }
+    }
+    setRubricError('');
     setSaving(true);
 
     const send = (fileName, fileBase64, mimeType) => {
@@ -1010,6 +1212,7 @@ function TeacherWeeks({ weeks, flash }) {
         fileName: fileName || '',
         fileBase64: fileBase64 || '',
         mimeType: mimeType || '',
+        rubricJson: rt,
       });
     };
 
@@ -1119,6 +1322,16 @@ function TeacherWeeks({ weeks, flash }) {
             <span>{file ? file.name : '파일을 선택하세요 (선택)'}</span>
           </div>
 
+          <label>자동채점 루브릭JSON (선택)</label>
+          <textarea
+            value={rubricText}
+            onChange={(e) => setRubricText(e.target.value)}
+            placeholder='예) {"questions":[{"key":"q1","accepted":["광합성"],"score":2}],"keywords":[{"term":"엽록소","score":1}],"maxScore":4}'
+            rows={5}
+          />
+          {rubricError ? <div className="empty-mini">{rubricError}</div> : null}
+          <div className="empty-mini">비워두면 기존 루브릭 유지, 지우고 저장하면 루브릭 삭제. questions/keywords/maxScore 형식을 사용합니다.</div>
+
           <button type="button" className="ink-button full" disabled={saving} onClick={save}>
             <Icon name="check" size={17} />
             {saving ? '저장 중…' : '주차 설정 저장'}
@@ -1129,7 +1342,7 @@ function TeacherWeeks({ weeks, flash }) {
   );
 }
 
-function CsvDownload({ portfolio, students }) {
+function CsvDownload({ portfolio, students, csvExport }) {
   const headers = ['학번', '이름', '학년', '반', ...Array.from({ length: 17 }, (_, i) => `${i + 1}주차`), '총점'];
   const map = new Map();
   (students || []).forEach((s) => {
@@ -1147,6 +1360,7 @@ function CsvDownload({ portfolio, students }) {
     .map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
     .join('\n');
   const href = `data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csv)}`;
+  const serverHref = csvExport?.csv ? `data:text/csv;charset=utf-8,%EF%BB%BF${encodeURIComponent(csvExport.csv)}` : '';
   return (
     <div className="export-page">
       <section className="export-hero">
@@ -1157,7 +1371,7 @@ function CsvDownload({ portfolio, students }) {
             <br />
             <i>가져가세요.</i>
           </h1>
-          <p>전체 학생의 1—17주차 점수와 총점을 Excel에서 바로 열 수 있는 CSV로 내보냅니다.</p>
+          <p>현재 필터 기준 서버 CSV(UTF-8 BOM)와 화면 기준 요약 CSV를 제공합니다.</p>
         </div>
         <div className="export-icon">
           <Icon name="download" size={42} />
@@ -1165,11 +1379,25 @@ function CsvDownload({ portfolio, students }) {
       </section>
       <div className="export-note">
         <div>
-          <b>포함 데이터</b>
+          <b>서버 CSV {csvExport ? `· ${csvExport.count}건 · ${csvExport.generatedAt || ''}` : '· 필터 기준'}</b>
+          <span>학번 · 이름 · 학년 · 반 · 주차 · 점수 · 배점 · 피드백 · 제출일시</span>
+        </div>
+        <div className="ws-row">
+          <button className="ws-btn primary" onClick={() => emit('teacher_export_csv', {})}>서버 CSV 준비</button>
+          {serverHref ? (
+            <a href={serverHref} download={csvExport.filename || '포트폴리오_성적표.csv'} className="ink-button">
+              <Icon name="download" size={17} /> 서버 CSV 다운로드
+            </a>
+          ) : null}
+        </div>
+      </div>
+      <div className="export-note">
+        <div>
+          <b>화면 요약 CSV</b>
           <span>학번 · 이름 · 학년 · 반 · 1—17주차 점수 · 총점</span>
         </div>
         <a href={href} download="기술가정_포트폴리오_성적표.csv" className="ink-button">
-          <Icon name="download" size={17} /> CSV 다운로드
+          <Icon name="download" size={17} /> 요약 CSV 다운로드
         </a>
       </div>
     </div>
@@ -1569,6 +1797,34 @@ function TeacherGames({ weeks, configs, records }) {
   const current = { week: Number(week), enabled, type: gtype, title, desc, content };
   const weekRecs = (records || []).filter((r) => Number(r.주차) === Number(week));
   const goal = (weeks || []).find((w) => Number(w.주차) === Number(week));
+  const embedUrlError = (window.__TECH_VALIDATION__ && window.__TECH_VALIDATION__.validateEmbedUrl)
+    ? window.__TECH_VALIDATION__.validateEmbedUrl(embedUrl)
+    : '';
+  const canSaveGame = !embedUrlError && String(title || '').trim().length > 0;
+  const storedType = String((((configs || []).find((x) => Number(x.week) === Number(week)) || {}).type) || '');
+  const storedIsVisual = storedType.startsWith('visual:');
+  const visualLabel = (typeof VISUAL_LABEL !== 'undefined' && VISUAL_LABEL[storedType]) || storedType;
+  if (storedIsVisual) {
+    return (
+      <div className="ws-wrap">
+        <header className="ws-top">
+          <div><span className="eyebrow">WEEKLY GAME · ADMIN</span><h1>주차별 게임 관리</h1></div>
+          <div className="ws-top-actions">
+            <select value={week} onChange={(e) => setWeek(Number(e.target.value))}>
+              {Array.from({ length: 17 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}주차</option>)}
+            </select>
+          </div>
+        </header>
+        <section className="ws-card">
+          <b>{week}주차에는 실습(시각화) 모듈({visualLabel})이 설정되어 있습니다.</b>
+          <p className="ws-hint">게임 저장은 실습 설정을 덮어쓰지 않도록 막혀 있습니다. 변경은 실습 탭에서 해주세요.</p>
+          {typeof VisualPlayer !== 'undefined' ? (
+            <VisualPlayer config={(configs || []).find((x) => Number(x.week) === Number(week)) || {}} onLog={() => {}} />
+          ) : null}
+        </section>
+      </div>
+    );
+  }
   return <div className="ws-wrap">
     <header className="ws-top">
       <div><span className="eyebrow">WEEKLY GAME · ADMIN</span><h1>주차별 게임 관리</h1></div>
@@ -1578,7 +1834,7 @@ function TeacherGames({ weeks, configs, records }) {
         </select>
         <label className="ws-check gm-switch"><input type="checkbox" checked={enabled} onChange={(e) => { setEnabled(e.target.checked); emit('teacher_game_toggle', { week: Number(week), enabled: e.target.checked }); }} />{enabled ? '활성화' : '비활성화'}</label>
         <button className={preview ? 'ws-btn' : 'ws-btn primary'} onClick={() => setPreview(!preview)}>{preview ? '편집으로' : '미리보기'}</button>
-        <button className="ws-btn primary" onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
+        <button className="ws-btn primary" disabled={!canSaveGame} title={embedUrlError || ''} onClick={() => emit('teacher_game_save', { config: current })}>게임 저장</button>
       </div>
     </header>
     {!preview ? <>
@@ -1615,8 +1871,10 @@ function TeacherGames({ weeks, configs, records }) {
         <button className="ws-btn" onClick={() => setPairs([...pairs, { a: '', b: '' }])}>+ 카드 쌍 추가</button>
       </section>}
       {gtype === 'embed' && <section className="ws-card">
-        <label>외부 게임 URL (iframe)<input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." /></label>
+        <label>외부 게임 URL (iframe, https만)<input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." /></label>
+        {embedUrlError ? <div className="empty-mini">{embedUrlError}</div> : null}
         <label>또는 직접 HTML 코드<textarea value={embedHtml} onChange={(e) => setEmbedHtml(e.target.value)} placeholder="<html>... 점수 전송: postMessage({source:'external-game', score, maxScore})" rows={6} /></label>
+        <div className="empty-mini">iframe은 sandbox로 격리되며, 교사 입력 HTML만 허용됩니다.</div>
       </section>}
       <section className="ws-card">
         <b>{week}주차 기록 ({weekRecs.length}명)</b>
@@ -1648,7 +1906,9 @@ function TeacherApp({ args }) {
           ? '학습지 관리'
           : active === 'games'
             ? '주차별 게임'
-            : active === 'students'
+            : active === 'visual'
+              ? '주차별 실습'
+              : active === 'students'
           ? '학생 평가'
           : 'CSV 내보내기';
 
@@ -1685,9 +1945,20 @@ function TeacherApp({ args }) {
           {active === 'games' && (
             <TeacherGames weeks={weeks} configs={(args.games && args.games.configs) || []} records={(args.games && args.games.records) || []} />
           )}
-          {active === 'students' && <TeacherStudents dashboard={dashboard} initialStudent={studentJump} />}
+          {active === 'visual' &&
+            (typeof TeacherVisual !== 'undefined' ? (
+              <TeacherVisual
+                weeks={weeks}
+                configs={(args.games && args.games.configs) || []}
+                records={(args.games && args.games.records) || []}
+                emit={emit}
+              />
+            ) : (
+              <div className="empty-mini">실습 모듈을 불러오지 못했습니다. 새로고침해 주세요.</div>
+            ))}
+          {active === 'students' && <TeacherStudents dashboard={dashboard} initialStudent={studentJump} weeks={weeks} csvExport={args.csvExport || null} result={args.result || null} onStudent={goStudent} />}
           {active === 'csv' && (
-            <CsvDownload portfolio={dashboard.portfolio || []} students={dashboard.students || []} />
+            <CsvDownload portfolio={dashboard.portfolio || []} students={dashboard.students || []} csvExport={args.csvExport || null} />
           )}
         </div>
       </main>

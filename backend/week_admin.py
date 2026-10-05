@@ -7,7 +7,15 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-from backend.sheets import WEEK_SHEET, _with_backoff, read_records
+from backend.sheets import (
+    HEADERS,
+    WEEK_OPTIONAL_COLS,
+    WEEK_SHEET,
+    _ensure_header_tolerant,
+    _with_backoff,
+    invalidate_sheet_cache,
+    read_records,
+)
 
 # Sheets + Drive
 SCOPES = [
@@ -53,26 +61,45 @@ def upsert_week_setting(
     score: int = 10,
     published: str = "Y",
     material_url: str = "",
+    rubric_json: str | None = None,
 ) -> None:
-    """주차설정 시트에 해당 주차를 추가/수정."""
+    """주차설정 시트에 해당 주차를 추가/수정.
+
+    rubric_json이 None이면 기존 루브릭을 유지한다 (교사 UI에서 미입력 시 보존).
+    빈 문자열이면 루브릭을 지운다.
+    """
+    from backend.grading import parse_rubric
+
     if not (1 <= int(week) <= 17):
         raise ValueError("주차는 1~17만 가능합니다.")
 
     ws = sheets[WEEK_SHEET]
+    try:
+        headers = _ensure_header_tolerant(ws, HEADERS[WEEK_SHEET], WEEK_OPTIONAL_COLS)
+    except Exception:
+        values0 = _with_backoff(lambda: ws.get_all_values())
+        headers = values0[0] if values0 else list(HEADERS[WEEK_SHEET])
     values = _with_backoff(lambda: ws.get_all_values())
-    headers = values[0] if values else ["주차", "학습목표", "활동지질문", "배점", "공개여부"]
-
-    # 자료링크 열이 없으면 추가 (기존 시트 호환)
-    if "자료링크" not in headers:
-        headers = list(headers) + ["자료링크"]
-        _with_backoff(lambda: ws.update("A1", [headers]))
 
     week_col = headers.index("주차")
     row_no = None
+    existing_rubric = ""
     for i, row in enumerate(values[1:], start=2):
         if week_col < len(row) and str(row[week_col]).strip() == str(week):
             row_no = i
+            if "루브릭JSON" in headers:
+                ridx = headers.index("루브릭JSON")
+                existing_rubric = str(row[ridx]).strip() if ridx < len(row) else ""
             break
+
+    if rubric_json is None:
+        rubric_text = existing_rubric
+    else:
+        rubric_text = str(rubric_json or "").strip()[:20000]
+        if rubric_text:
+            parsed = parse_rubric(rubric_text)
+            if parsed is None:
+                raise ValueError("루브릭JSON 형식이 올바르지 않습니다.")
 
     record = {h: "" for h in headers}
     record["주차"] = str(week)
@@ -82,11 +109,15 @@ def upsert_week_setting(
     record["공개여부"] = published or "Y"
     if "자료링크" in record:
         record["자료링크"] = material_url
+    if "루브릭JSON" in record:
+        record["루브릭JSON"] = rubric_text
 
     row_values = [record.get(h, "") for h in headers]
 
     if row_no:
-        end_col = chr(64 + len(headers)) if len(headers) <= 26 else "Z"
+        from backend.sheets import _col_letter
+
+        end_col = _col_letter(len(headers))
         _with_backoff(
             lambda: ws.update(
                 f"A{row_no}:{end_col}{row_no}",
@@ -96,6 +127,7 @@ def upsert_week_setting(
         )
     else:
         _with_backoff(lambda: ws.append_row(row_values, value_input_option="USER_ENTERED"))
+    invalidate_sheet_cache(WEEK_SHEET, sheets)
 
 
 def upload_bytes_to_drive(
