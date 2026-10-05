@@ -46,18 +46,97 @@ ROOT = Path(__file__).parent
 BUILD_DIR = ROOT / "frontend" / "dist"
 
 
+def safe_secret(key: str, default: str = "") -> str:
+    """st.secrets 접근을 절대 실패하지 않게 감싼다.
+
+    Secrets 파일 자체가 없는 환경(구버전/로컬)에서도 예외 대신 기본값을 반환한다.
+    """
+    try:
+        value = st.secrets.get(key, default)
+    except Exception as exc:
+        logger.warning("Secrets 접근 실패(%s): %s", key, exc)
+        return default
+    return str(value if value is not None else default)
+
+
+def has_service_account() -> bool:
+    try:
+        return "gcp_service_account" in st.secrets and bool(st.secrets["gcp_service_account"])
+    except Exception as exc:
+        logger.warning("Secrets 접근 실패(gcp_service_account): %s", exc)
+        return False
+
+
 def get_spreadsheet_url() -> str:
     """Streamlit Secrets에서 SPREADSHEET_URL을 읽는다.
 
     기존 하드코딩 fallback을 제거하고, 누락 시 배포 원인을 명시한다.
     """
-    url = str(st.secrets.get("SPREADSHEET_URL", "")).strip()
+    url = safe_secret("SPREADSHEET_URL", "").strip()
     if not url:
         raise RuntimeError(
             "Streamlit Secrets에 SPREADSHEET_URL이 없습니다. "
             "App settings → Secrets에 SPREADSHEET_URL을 설정하세요."
         )
     return url
+
+
+def render_setup_guide(missing: list[str], warnings: list[str]) -> None:
+    """Secrets 미설정 시 앱 화면에 직접 설정 가이드를 보여준다 (로그에만 남기지 않음)."""
+    st.title("📚 기술·가정 포트폴리오 — 초기 설정 필요")
+    st.error("Google Sheets 연결 정보가 없습니다. 아래 Secrets를 설정한 뒤 앱을 다시 실행하세요.")
+    if missing:
+        st.subheader("필수 Secrets")
+        for item in missing:
+            st.write(f"- `{item}`")
+    if warnings:
+        st.subheader("권장 Secrets")
+        for item in warnings:
+            st.write(f"- `{item}`")
+    st.subheader("설정 방법 (Streamlit Community Cloud)")
+    st.write("1. 앱 페이지 → 우측 하단 **Manage app** → **Settings** → **Secrets**")
+    st.write("2. 아래 TOML을 붙여넣고 Save 후 **Reboot app**")
+    st.code(
+        'SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"\n'
+        'TEACHER_PASSWORD = "긴-임의-비밀번호로-교체"\n'
+        '# DRIVE_FOLDER_ID = "자료/이미지용 Drive 폴더 ID (선택)"\n'
+        '\n'
+        '[gcp_service_account]\n'
+        'type = "service_account"\n'
+        'project_id = "YOUR_PROJECT_ID"\n'
+        'private_key_id = "YOUR_PRIVATE_KEY_ID"\n'
+        'private_key = "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"\n'
+        'client_email = "YOUR_SERVICE_ACCOUNT_EMAIL"\n'
+        'client_id = "YOUR_CLIENT_ID"\n'
+        'auth_uri = "https://accounts.google.com/o/oauth2/auth"\n'
+        'token_uri = "https://oauth2.googleapis.com/token"\n'
+        'auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"\n'
+        'client_x509_cert_url = "YOUR_CLIENT_CERT_URL"',
+        language="toml",
+    )
+    st.info(
+        "서비스 계정의 client_email을 Google Sheets에 **편집자**로 공유해야 합니다. "
+        "자세한 형식은 저장소의 `SECRETS_EXAMPLE.toml`을 참고하세요."
+    )
+
+
+def require_setup() -> None:
+    """필수 Secrets 누락 시 설정 화면을 보여주고 스크립트를 중단한다."""
+    missing: list[str] = []
+    warnings: list[str] = []
+    try:
+        url_ok = bool(get_spreadsheet_url())
+    except RuntimeError:
+        url_ok = False
+    if not url_ok:
+        missing.append("SPREADSHEET_URL")
+    if not has_service_account():
+        missing.append("[gcp_service_account]")
+    if not safe_secret("TEACHER_PASSWORD", "").strip():
+        warnings.append("TEACHER_PASSWORD (없으면 교사 로그인 불가)")
+    if missing:
+        render_setup_guide(missing, warnings)
+        st.stop()
 
 
 SPREADSHEET_URL = ""
@@ -67,7 +146,7 @@ except RuntimeError as exc:
     # Secrets 없이 import되는 로컬/테스트 환경을 위해 지연 평가한다.
     # 실제 Sheets 접근 시점에 다시 시도해 명확한 에러를 낸다.
     logger.warning("SPREADSHEET_URL 미설정: %s", exc)
-DRIVE_FOLDER_ID = str(st.secrets.get("DRIVE_FOLDER_ID", "")).strip()
+DRIVE_FOLDER_ID = safe_secret("DRIVE_FOLDER_ID", "").strip()
 
 DEV_COMPONENT_URL = os.getenv("STREAMLIT_COMPONENT_DEV_URL", "").strip()
 if DEV_COMPONENT_URL:
@@ -132,12 +211,16 @@ def init_state() -> None:
 
 
 init_state()
+require_setup()
 
 
 def service_account():
-    if "gcp_service_account" not in st.secrets:
+    if not has_service_account():
         raise RuntimeError("Streamlit Secrets에 [gcp_service_account]가 없습니다.")
-    return st.secrets["gcp_service_account"]
+    try:
+        return st.secrets["gcp_service_account"]
+    except Exception as exc:
+        raise RuntimeError("Streamlit Secrets에 [gcp_service_account]가 없습니다.") from exc
 
 
 def sheets():
@@ -428,7 +511,7 @@ def handle_student_login(event: dict[str, Any]) -> None:
 
 def handle_teacher_login(event: dict[str, Any]) -> None:
     password = str(event.get("password", ""))
-    expected = str(st.secrets.get("TEACHER_PASSWORD", ""))
+    expected = safe_secret("TEACHER_PASSWORD", "")
     if expected and password == expected:
         st.session_state.role = "teacher"
         st.session_state.student = None
