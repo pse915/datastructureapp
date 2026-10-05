@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import json
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -203,6 +205,7 @@ def init_state() -> None:
         "all_portfolio": [],
         "students": [],
         "last_event_id": None,
+        "recent_event_ids": [],
         "flash": None,
         "server_result": None,
         "worksheet": None,
@@ -518,14 +521,26 @@ def handle_student_login(event: dict[str, Any]) -> None:
 
 
 def handle_teacher_login(event: dict[str, Any]) -> None:
+    now = time.time()
+    blocked_until = float(st.session_state.get("teacher_login_blocked_until") or 0)
+    if now < blocked_until:
+        set_flash("error", "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.")
+        return
     password = str(event.get("password", ""))
     expected = safe_secret("TEACHER_PASSWORD", "")
-    if expected and password == expected:
+    if expected and hmac.compare_digest(password, expected):
         st.session_state.role = "teacher"
         st.session_state.student = None
+        st.session_state.teacher_login_attempts = 0
+        st.session_state.teacher_login_blocked_until = 0
         reload_teacher()
         set_flash("success", "교사 관리자 모드로 로그인되었습니다.")
     else:
+        attempts = int(st.session_state.get("teacher_login_attempts") or 0) + 1
+        st.session_state.teacher_login_attempts = attempts
+        if attempts >= 5:
+            st.session_state.teacher_login_blocked_until = now + 300
+            st.session_state.teacher_login_attempts = 0
         set_flash("error", "교사용 비밀번호가 올바르지 않습니다.")
 
 
@@ -748,6 +763,11 @@ def handle_teacher_week_save(event: dict[str, Any]) -> None:
         rubric_json=rubric_text,
     )
     reload_teacher()
+    try:
+        from backend.sheets import append_audit_log
+        append_audit_log(sheets(), "teacher", "teacher_week_save", f"{week_no}주", f"score={score}")
+    except Exception:
+        pass
     set_flash("success", f"{week_no}주차 포트폴리오 설정이 저장되었습니다.")
 
 
@@ -1086,10 +1106,17 @@ def process_event(event: Any) -> bool:
         return False
     if len(event_id) > 128 or len(action) > 64:
         return False
-    if event_id == st.session_state.last_event_id:
+    recent = st.session_state.get("recent_event_ids")
+    if not isinstance(recent, list):
+        recent = []
+        st.session_state.recent_event_ids = recent
+    if event_id == st.session_state.last_event_id or event_id in recent:
         return False
 
     st.session_state.last_event_id = event_id
+    recent.append(event_id)
+    if len(recent) > 100:
+        del recent[: len(recent) - 100]
     st.session_state.flash = None
     st.session_state.server_result = None
 

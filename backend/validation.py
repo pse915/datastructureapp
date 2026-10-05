@@ -50,11 +50,8 @@ def validate_score(score: object, max_score: object = 100) -> int:
         cap = int(float(max_score))
     except (ValueError, TypeError):
         cap = 100
-    if cap < 0:
+    if cap <= 0:
         cap = 100
-    if not (0 <= value <= max(cap, value if value <= 1000 else cap)):
-        # 상한이 불명확한 경우 0~1000으로 제한해 비정상 대입을 막는다.
-        pass
     if not (0 <= value <= 1000):
         raise ValueError("점수는 0~1000 사이여야 합니다.")
     if cap and value > cap:

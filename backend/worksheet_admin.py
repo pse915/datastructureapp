@@ -69,13 +69,19 @@ def save_worksheet(sheets, data: dict[str, Any], book=None) -> str:
     if len(questions) > 100:
         raise ValueError("문제는 최대 100개까지 가능합니다.")
     now = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    try:
+        questions_text = json.dumps(questions, ensure_ascii=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("학습지 문제 JSON 직렬화에 실패했습니다.") from exc
+    if len(questions_text) > 50000:
+        raise ValueError("문제JSON이 너무 큽니다. 50000자 이하로 줄여주세요.")
     row = [
         str(week),
         title,
         unit,
         guide,
         "Y" if data.get("published", True) else "N",
-        json.dumps(questions, ensure_ascii=False)[:50000],
+        questions_text,
         now,
     ]
     values = _with_backoff(lambda: ws.get_all_values())

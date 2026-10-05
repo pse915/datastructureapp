@@ -28,6 +28,8 @@ def extract_text_from_upload(uploaded_file) -> str:
     """PDF / Word 업로드에서 텍스트 추출."""
     name = (uploaded_file.name or "").lower()
     data = uploaded_file.read()
+    if len(data) > 9_000_000:
+        raise ValueError("업로드 파일이 너무 큽니다. 9MB 이하로 올려주세요.")
 
     if name.endswith(".docx"):
         from docx import Document

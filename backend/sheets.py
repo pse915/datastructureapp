@@ -444,7 +444,24 @@ def _complete(sheets, submission_id: str, when: str):
     # find 1회 + batch_update 1회로 기존 update_cell 2회를 대체한다.
     cell = _with_backoff(lambda: ws.find(submission_id))
     if cell is None:
-        raise RuntimeError("제출기록에서 submissionId를 찾지 못했습니다.")
+        # find 일시 실패(eventual consistency) 대비: 캐시 무효화 후 값 스캔으로 행 복원
+        invalidate_sheet_cache(LEDGER, sheets)
+        try:
+            values = _cached_get_all_values(ws)
+            for row_no, row in enumerate(values, start=1):
+                if row and str(row[0]).strip() == submission_id:
+                    cell = type("Cell", (), {"row": row_no})()
+                    break
+        except Exception:
+            cell = None
+    if cell is None:
+        # PROCESSING 행 유실 시 COMPLETED 보정 append로 영구 PROCESSING 방지
+        _with_backoff(lambda: sheets[LEDGER].append_row(
+            [submission_id, "COMPLETED", when, "", "", "", when],
+            value_input_option="USER_ENTERED",
+        ))
+        invalidate_sheet_cache(LEDGER, sheets)
+        return
     _with_backoff(lambda: ws.batch_update([
         {"range": f"B{cell.row}", "values": [["COMPLETED"]]},
         {"range": f"G{cell.row}", "values": [[when]]},
@@ -739,7 +756,7 @@ def build_class_stats(
             ungraded[key] += 1
         try:
             sc = float(str(r.get("점수", "")).strip())
-        except ValueError:
+        except (ValueError, TypeError):
             continue
         score_sum[key] += sc
         score_n[key] += 1

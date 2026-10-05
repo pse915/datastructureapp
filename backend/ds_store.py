@@ -7,9 +7,12 @@ DS 단원 8종(array/linkedlist/stack/queue/tree/graph/sort/hash)의
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 DS_UNITS = ["array", "linkedlist", "stack", "queue", "tree", "graph", "sort", "hash"]
 
@@ -67,6 +70,10 @@ def submit_ds_result(sheets, student: dict[str, Any], payload: dict[str, Any], b
         raise ValueError("점수 범위가 올바르지 않습니다.")
     record_id = str(payload.get("recordId", "")).strip()[:128] or f"ds-{student.get('학번', '')}-{unit}"
     stamped = now_iso()
+    try:
+        detail_text = json.dumps(payload.get("detail", {}), ensure_ascii=False)[:8000]
+    except (TypeError, ValueError):
+        detail_text = "{}"
 
     # 1) Sheets 시도
     try:
@@ -84,18 +91,19 @@ def submit_ds_result(sheets, student: dict[str, Any], payload: dict[str, Any], b
                 {"range": f"E{row_no}", "values": [[score]]},
                 {"range": f"F{row_no}", "values": [[max_score]]},
                 {"range": f"G{row_no}", "values": [[stamped]]},
+                {"range": f"H{row_no}", "values": [[detail_text]]},
             ], value_input_option="USER_ENTERED"))
         else:
             _with_backoff(
                 lambda: ws.append_row(
                     [record_id, str(student.get("학번", "")), str(student.get("이름", "")),
-                     unit, score, max_score, stamped, "{}"],
+                     unit, score, max_score, stamped, detail_text],
                     value_input_option="USER_ENTERED",
                 )
             )
         return {"unitId": unit, "score": score, "savedAt": stamped, "store": "sheets"}
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("DS Sheets 저장 실패, 로컬 폴백 사용: %s", exc)
 
     # 2) 로컬 폴백
     state = _load_local()

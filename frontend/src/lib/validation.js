@@ -31,8 +31,10 @@ export function validateScore(score, cap) {
   const n = Number(score);
   if (!Number.isFinite(n)) return '점수는 숫자여야 합니다.';
   if (n < 0 || n > 1000) return '점수는 0~1000 사이여야 합니다.';
-  if (cap != null && Number.isFinite(Number(cap)) && n > Number(cap)) {
-    return `점수는 배점(${cap}점)을 초과할 수 없습니다.`;
+  const capNum = Number(cap);
+  const effectiveCap = cap == null || cap === '' || !Number.isFinite(capNum) || capNum <= 0 ? 100 : capNum;
+  if (n > effectiveCap) {
+    return `점수는 배점(${effectiveCap}점)을 초과할 수 없습니다.`;
   }
   return '';
 }

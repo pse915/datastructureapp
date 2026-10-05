@@ -251,15 +251,27 @@ def submit_record(sheets, student: dict[str, Any], payload: dict[str, Any], book
         raise ValueError("학번이 필요합니다.")
     row_no = _find_record_row(ws, sid, week)
     stamped = now_iso()
+    incoming_record_id = str(payload.get("recordId", "")).strip()[:128]
     if row_no:
         cur = _with_backoff(lambda: ws.row_values(row_no))
+        # 동일 recordId 재전송은 네트워크 재시도로 간주해 tries 증가 없이 멱등 반환
+        if incoming_record_id and len(cur) > 0 and str(cur[0]).strip() == incoming_record_id:
+            try:
+                prev_best = int(float(cur[9] or 0)) if len(cur) > 9 and str(cur[9]).strip() else 0
+            except (ValueError, TypeError):
+                prev_best = 0
+            try:
+                prev_tries = int(float(cur[10] or 0)) if len(cur) > 10 and str(cur[10]).strip() else 0
+            except (ValueError, TypeError):
+                prev_tries = 0
+            return {"week": week, "score": score, "best": prev_best, "tries": prev_tries, "savedAt": stamped, "dedup": True}
         try:
             prev_best = int(float(cur[9] or 0)) if len(cur) > 9 and str(cur[9]).strip() else 0
-        except ValueError:
+        except (ValueError, TypeError):
             prev_best = 0
         try:
             prev_tries = int(float(cur[10] or 0)) if len(cur) > 10 and str(cur[10]).strip() else 0
-        except ValueError:
+        except (ValueError, TypeError):
             prev_tries = 0
         best = max(prev_best, score)
         tries = prev_tries + 1

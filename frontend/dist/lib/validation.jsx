@@ -20,6 +20,21 @@
     if (v.length > cap) return '내용이 너무 깁니다. 최대 ' + cap + '자까지 가능합니다.';
     return '';
   }
+  function validateScore(score, cap) {
+    var n = Number(score);
+    if (!Number.isFinite(n)) return '점수는 숫자여야 합니다.';
+    if (n < 0 || n > 1000) return '점수는 0~1000 사이여야 합니다.';
+    var capNum = Number(cap);
+    var effectiveCap = (cap == null || cap === '' || !Number.isFinite(capNum) || capNum <= 0) ? 100 : capNum;
+    if (n > effectiveCap) return '점수는 배점(' + effectiveCap + '점)을 초과할 수 없습니다.';
+    return '';
+  }
+  function validateFeedback(feedback, maxLen) {
+    var v = String(feedback == null ? '' : feedback);
+    var cap = maxLen || C.MAX_FEEDBACK_LENGTH;
+    if (v.length > cap) return '피드백이 너무 깁니다. 최대 ' + cap + '자까지 가능합니다.';
+    return '';
+  }
   function validateEmbedUrl(url) {
     var v = String(url == null ? '' : url).trim();
     if (!v) return '';
@@ -41,6 +56,8 @@
     validateStudentId: validateStudentId,
     validateWeek: validateWeek,
     validateContent: validateContent,
+    validateScore: validateScore,
+    validateFeedback: validateFeedback,
     validateEmbedUrl: validateEmbedUrl,
     escapeHtml: escapeHtml
   };
